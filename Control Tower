@@ -1,0 +1,405 @@
+"use client";
+
+import React, { useCallback, useEffect, useState, useRef } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import type { AppDispatch, RootState } from "@/store";
+import { controlTowerAPI } from "@/utils/services/controlTowerAPI";
+import ControlTowerCard from "./TripDriverTracking";
+import {
+  ResizableHandle,
+  ResizablePanel,
+  ResizablePanelGroup,
+} from "../ui/resizable";
+import MapComponent from "../common/detailsMap/map";
+import {
+  AccumulateData,
+  CTHop,
+  MapTransporterDetails,
+} from "@/types/controlTower";
+import type {
+  TrackingLocation as MapTrackingLocation,
+  CurrentLocation as MapCurrentLocation,
+} from "@/types/map-type";
+import { ENV_CONSTANT, TAB_OPTIONS_CONTROL_TOWER } from "@/utils/constants";
+import TableFilterBar from "../common/table/filterBar";
+import { FilterValues } from "@/types/table";
+import { Button } from "../ui/button";
+import { toast } from "sonner";
+import { useVehicleTracking } from "@/hooks/useVehicleTracking";
+import { resetCTSearch, setCTSearch } from "@/store/slices/controlTowerSlice";
+
+function ControlTower() {
+  const dispatch = useDispatch<AppDispatch>();
+  const controlTowerData = useSelector(
+    (state: RootState) => state.controlTower.CTtripsData
+  );
+  const controlTowerSearchData = useSelector(
+    (state: RootState) => state.controlTower.CTtripsSearchData
+  );
+  const paginationState = useSelector(
+    (state: RootState) => state.controlTower.pagination
+  );
+  const error = useSelector((state: RootState) => state.controlTower.error);
+  const loading = useSelector((state: RootState) => state.controlTower.loading);
+
+  const [selectedTab, setSelectedTab] = useState<keyof AccumulateData>("All");
+  const [selectedTripIndex, setSelectedTripIndex] = useState(0);
+  const [currentFilters, setCurrentFilters] = useState<FilterValues>({
+    searchQuery: "",
+  });
+  const [isFilterMode, setIsFilterMode] = useState(false);
+
+  const [pageNo, setPageNo] = useState<Record<keyof AccumulateData, number>>({
+    All: 1,
+    "In-Transit": 1,
+    Completed: 1,
+    Delayed: 1,
+  });
+
+  const [searchPageNo, setSearchPageNo] = useState(1);
+
+  const [fetchedPages, setFetchedPages] = useState<
+    Record<keyof AccumulateData, Set<number>>
+  >({
+    All: new Set(),
+    "In-Transit": new Set(),
+    Completed: new Set(),
+    Delayed: new Set(),
+  });
+
+  const lastFetchedTabRef = useRef<keyof AccumulateData>("All");
+
+  // Fetch tab-wise data
+  useEffect(() => {
+    if (isFilterMode) return;
+
+    const currentPage = pageNo[selectedTab];
+    const fetchedSet = fetchedPages[selectedTab];
+    const alreadyFetched = fetchedSet.has(currentPage);
+
+    if (alreadyFetched) return;
+
+    const fetchTrips = async () => {
+      try {
+        lastFetchedTabRef.current = selectedTab;
+        await controlTowerAPI(dispatch, {
+          pageNo: currentPage,
+          limit: 10,
+          status:
+            selectedTab === "All"
+              ? undefined
+              : selectedTab.replace("-", " ").toLowerCase(),
+          tab: selectedTab,
+          append: currentPage > 1,
+        });
+
+        setFetchedPages((prev) => ({
+          ...prev,
+          [selectedTab]: new Set([...prev[selectedTab], currentPage]),
+        }));
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchTrips();
+  }, [dispatch, selectedTab, pageNo, fetchedPages, isFilterMode]);
+
+  // Fetch search data
+  useEffect(() => {
+    const { searchQuery, tripStartDate, tripEndDate } = currentFilters;
+    const areFiltersEmpty = !searchQuery && !tripStartDate && !tripEndDate;
+
+    if (areFiltersEmpty) {
+      setIsFilterMode(false);
+      return;
+    }
+
+    const fetchSearch = async () => {
+      try {
+        setIsFilterMode(true);
+        await controlTowerAPI(dispatch, {
+          pageNo: searchPageNo,
+          limit: 10,
+          filters: {
+            ...(searchQuery ? { searchQuery } : {}),
+            ...(tripStartDate ? { tripStartDate } : {}),
+            ...(tripEndDate ? { tripEndDate } : {}),
+          },
+          append: searchPageNo > 1,
+        });
+      } catch (error) {
+        console.error(error);
+      }
+    };
+
+    fetchSearch();
+  }, [currentFilters, searchPageNo, dispatch]);
+
+  const handleFiltersApply = useCallback((newFilters: FilterValues) => {
+    const { searchQuery, tripStartDate, tripEndDate } = newFilters;
+    const areFiltersEmpty = !searchQuery && !tripStartDate && !tripEndDate;
+    if (areFiltersEmpty) {
+      dispatch(resetCTSearch());
+    }
+
+    setSelectedTripIndex(0);
+    setIsFilterMode(!areFiltersEmpty);
+    setCurrentFilters(newFilters);
+    setSearchPageNo(1); //  reset search page
+  }, []);
+
+  const finalDataFilter = isFilterMode
+    ? controlTowerSearchData
+    : controlTowerData[selectedTab] || [];
+
+  const selectedTrip = finalDataFilter[selectedTripIndex] || finalDataFilter[0];
+  const tripId = selectedTrip?.tripId;
+  const liveLocation = useVehicleTracking(tripId);
+
+  const currentPagination = isFilterMode
+    ? paginationState["Search"]
+    : paginationState[selectedTab];
+
+  const isLoadMoreDisabled =
+    !currentPagination ||
+    finalDataFilter.length >= (currentPagination.totalItems || 0);
+
+  const getMapData = () => {
+
+    if (!selectedTrip) {
+      return {
+        trackingLocations: [] as MapTrackingLocation[],
+        currentLocation: {
+          lat: parseFloat(ENV_CONSTANT.LAT_MAP || "0"),
+          lng: parseFloat(ENV_CONSTANT.LNG_MAP || "0"),
+        },
+        transporterDetails: {
+          driverDetails: undefined,
+          transporterDetails: undefined,
+          vehicleDetails: undefined,
+        } as MapTransporterDetails,
+      };
+    }
+
+    const trackingLocations =
+      selectedTrip?.tracking?.hops?.map((hop) => ({
+        eta: hop.eta || "",
+        currentStatus: hop.currentStatus,
+        locationDetails: hop.location,
+      })) ?? [];
+
+    const isValidCoord = (value: number | string | null | undefined): boolean => {
+      return value !== null && value !== "" && value !== undefined;
+    };
+
+    // Check if live location is valid
+    const isLiveLocationValid =
+      liveLocation &&
+      isValidCoord(liveLocation.lat) &&
+      isValidCoord(liveLocation.lng);
+
+    // Check if vehicle current location is valid
+    const isVehicleLocationValid =
+      selectedTrip.vehicle?.currentLocation &&
+      isValidCoord(selectedTrip.vehicle.currentLocation.lat) &&
+      isValidCoord(selectedTrip.vehicle.currentLocation.lng);
+
+    // Initialize lat/lng from ENV fallback
+    let lat: number = Number(ENV_CONSTANT.LAT_MAP || 0);
+    let lng: number = Number(ENV_CONSTANT.LNG_MAP || 0);
+
+    // Overwrite if live location is valid
+    if (isLiveLocationValid) {
+      lat = Number(liveLocation!.lat);
+      lng = Number(liveLocation!.lng);
+    }
+
+    // Overwrite if vehicle current location is valid
+    if (isVehicleLocationValid) {
+      lat = Number(selectedTrip.vehicle!.currentLocation!.lat);
+      lng = Number(selectedTrip.vehicle!.currentLocation!.lng);
+    }
+
+    const currentLocation: MapCurrentLocation = { lat, lng };
+
+    const transporterDetails = {
+      driverDetails: selectedTrip.driver,
+      transporterDetails: selectedTrip.transporter,
+      vehicleDetails: selectedTrip.vehicle,
+    };
+
+    return { trackingLocations, currentLocation, transporterDetails };
+  };
+
+  const { trackingLocations, currentLocation, transporterDetails } =
+    getMapData();
+
+  if (error) toast.error(error);
+
+  return (
+    <div className="flex flex-col h-full">
+      <div className="px-4 shrink-0">
+        <TableFilterBar
+          onFiltersApply={handleFiltersApply}
+          isDateRangePickerEnabled={true}
+          searchQueryPlaceholder="Search ..."
+          options={TAB_OPTIONS_CONTROL_TOWER}
+          selected={selectedTab}
+          onSelect={setSelectedTab as (value: string) => void}
+          enableTabs={true}
+          isFilterMode={isFilterMode}
+        />
+      </div>
+      <div className="flex-1 overflow-hidden">
+        <ResizablePanelGroup direction="horizontal" className="h-full">
+          <ResizablePanel defaultSize={35} minSize={30}>
+            <div className="p-4 pr-1 pt-1 space-y-4 h-full overflow-y-scroll">
+              {finalDataFilter.length === 0 && !loading && (
+                <div>No trips found.</div>
+              )}
+
+              {finalDataFilter.length > 0 && (
+                <>
+                  {finalDataFilter.map((trip, index) => {
+                    const driver = trip.driver;
+                    const transporter = trip.transporter?.name || "-";
+                    const status = trip.status;
+                    const tripDate = new Date(
+                      trip.startDateTime
+                    ).toLocaleDateString("en-IN", {
+                      day: "numeric",
+                      month: "short",
+                      year: "2-digit",
+                    });
+                    const tripTime = new Date(
+                      trip.startDateTime
+                    ).toLocaleTimeString("en-IN", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                      hour12: true,
+                    });
+
+                    const hops: CTHop[] =
+                      trip.tracking?.hops?.map((hop, hopIndex) => {
+                        const location = hop.location ?? {
+                          id: `- ${hopIndex}`,
+                          name: "-",
+                          lat: 0,
+                          lng: 0,
+                        };
+                        const timestamp = hop.eta || "trip.startDateTime";
+
+                        return {
+                          time: new Date(timestamp).toLocaleTimeString(
+                            "en-IN",
+                            {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              hour12: true,
+                            }
+                          ),
+                          date: new Date(timestamp).toLocaleDateString(
+                            "en-IN",
+                            {
+                              day: "numeric",
+                              month: "short",
+                            }
+                          ),
+                          label: hop.isSource
+                            ? "Source"
+                            : hop.isDestination
+                              ? "Destination"
+                              : `Hop ${hopIndex + 1}`,
+                          location,
+                          currentStatus:
+                            hop.currentStatus?.name ||
+                            hop.currentStatus?.id ||
+                            "",
+                        };
+                      }) ?? [];
+
+                    return (
+                      <div
+                        key={trip.tripId}
+                        className={`cursor-pointer transition-all ${selectedTripIndex === index
+                          ? "ring-2 ring-blue-500 rounded-[3px]"
+                          : ""
+                          }`}
+                        onClick={() => setSelectedTripIndex(index)}
+                      >
+                        <ControlTowerCard
+                          tripRefId={trip.tripRefId}
+                          driver={driver}
+                          transporter={transporter}
+                          status={status}
+                          tripDate={tripDate}
+                          tripTime={tripTime}
+                          hops={hops}
+                          loading={loading}
+                        />
+                      </div>
+                    );
+                  })}
+
+                </>
+              )}
+
+              <div className="flex justify-center mt-4">
+                <Button
+                  onClick={() => {
+                    if (isFilterMode) {
+                      setSearchPageNo((prev) => prev + 1);
+                    } else {
+                      setPageNo((prev) => ({
+                        ...prev,
+                        [selectedTab]: prev[selectedTab] + 1,
+                      }));
+                    }
+                  }}
+                  disabled={loading || isLoadMoreDisabled}
+                  variant="ghost"
+                  className="border w-full border-gray-300 bg-white hover:bg-muted text-gray-700 hover:text-black shadow-sm px-6 py-2 rounded-md text-sm transition-all"
+                >
+                  Load more
+                </Button>
+              </div>
+            </div>
+          </ResizablePanel>
+          <ResizableHandle withHandle />
+          <ResizablePanel defaultSize={60}>
+            <div className="h-full flex flex-col">
+              <div className="flex-1">
+                {selectedTrip && trackingLocations.length > 0 ? (
+                  <MapComponent
+                    trackingLocations={trackingLocations}
+                    currentLocation={currentLocation}
+                    transporterDetails={{
+                      driverDetails: transporterDetails.driverDetails ?? {
+                        name: "",
+                        phone: "",
+                      },
+                      transporterDetails:
+                        transporterDetails.transporterDetails ?? { name: "" },
+                      vehicleDetails:
+                        typeof transporterDetails.vehicleDetails?.id ===
+                          "string"
+                          ? transporterDetails.vehicleDetails
+                          : { id: "", type: "", regNo: "" },
+                    }}
+                  />
+                ) : (
+                  <div className="h-full flex items-center justify-center bg-gray-50 dark:bg-gray-900">
+                    <p className="text-gray-500">No tracking data available</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          </ResizablePanel>
+        </ResizablePanelGroup>
+      </div>
+    </div>
+  );
+}
+
+export default ControlTower;
