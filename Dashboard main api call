@@ -1,0 +1,90 @@
+"use client";
+
+import React, { useEffect, useState } from "react";
+import { TabsList, TabsTrigger, TabsContent, Tabs } from "../ui/Tabs";
+import DashboardMetrics from "./Metrics";
+import DashboardUser from "./User";
+import DashboardFinancial from "./Financial";
+import DashboardPredictiveAnalysis from "./PredictiveAnalysis";
+import DashboardCard from "./HeaderCards";
+import { useSelector, useDispatch } from "react-redux";
+import { RootState, AppDispatch } from "@/store";
+import { getdashboardAPI } from "@/utils/services/dashboardAPI";
+import { DASHBOARD_SECTIONS } from "@/utils/constants";
+
+function DashboardMain() {
+  const dispatch = useDispatch<AppDispatch>();
+  const cachedKpis = useSelector((state: RootState) => state.dashboard.cachedKpis);
+  const [activeTab, setActiveTab] = useState<keyof typeof DASHBOARD_SECTIONS>("Metrics");
+
+  const dashboardState = useSelector((state: RootState) => state.dashboard);
+
+  const sectionMap = {
+    TRIP: dashboardState.tripDashboardData,
+    USER: dashboardState.userDashboardData,
+    FINANCE: dashboardState.financeDashboardData,
+    ANALYSIS: dashboardState.analysisDashboardData,
+  } as const;
+
+  const currentSection = DASHBOARD_SECTIONS[activeTab];
+  const currentData = sectionMap[currentSection];
+
+  const kpis = cachedKpis;
+
+  useEffect(() => {
+    if (!currentData) {
+      getdashboardAPI(dispatch, currentSection);
+    }
+  }, [currentSection, dispatch]);
+
+  return (
+    <Tabs
+      value={activeTab}
+      onValueChange={(val) => setActiveTab(val as keyof typeof DASHBOARD_SECTIONS)}
+      className="m-4"
+    >
+      <TabsList className="gap-5 mb-4">
+        <TabsTrigger value="Metrics">Metrics</TabsTrigger>
+        <TabsTrigger value="User">User</TabsTrigger>
+        <TabsTrigger value="Financial">Financial</TabsTrigger>
+        <TabsTrigger value="Analysis">Predictive Analysis</TabsTrigger>
+      </TabsList>
+
+      <div className="grid grid-cols-1 sm:grid-cols-3 lg:grid-cols-5 gap-4">
+        {kpis?.map((kpi: any, idx: number) => (
+          <DashboardCard
+            key={idx}
+            title={kpi.title}
+            value={
+              kpi.unit
+                ? kpi.unit === "%"
+                  ? `${kpi.value}%`
+                  : `${kpi.unit}${kpi.value}`
+                : `${kpi.value}`
+            }
+            description={kpi.trend.label}
+            Icon={kpi.icon}
+          />
+        ))}
+      </div>
+
+      <TabsContent value="Metrics" className="border-0 p-0">
+        <DashboardMetrics graphs={dashboardState.tripDashboardData?.trip?.graphs} />
+      </TabsContent>
+
+      <TabsContent value="User" className="border-0 p-0">
+        <DashboardUser graphs={dashboardState.userDashboardData?.user?.graphs} />
+      </TabsContent>
+
+      <TabsContent value="Financial" className="border-0 p-0">
+        <DashboardFinancial />
+      </TabsContent>
+
+      <TabsContent value="Analysis" className="border-0 p-0">
+        <DashboardPredictiveAnalysis />
+      </TabsContent>
+    </Tabs>
+  );
+}
+
+export default DashboardMain;
