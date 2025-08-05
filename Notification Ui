@@ -1,0 +1,203 @@
+"use client";
+
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from "../ui/popover";
+import { Button } from "../ui/button";
+import { Bell, Clock, Info, MapPin } from "lucide-react";
+import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
+import {
+  format,
+  isToday,
+  isYesterday,
+  formatDistanceToNow,
+} from "date-fns";
+
+// Mock Data
+export type Notification = {
+  id: string;
+  type: "trip" | "alert" | "info";
+  title: string;
+  description: string;
+  createdAt: string;
+  isRead: boolean;
+  link: string;
+};
+
+const mockNotifications: Notification[] = [
+  {
+    id: "1",
+    type: "trip",
+    title: "New Trip Assigned",
+    description: "You have a new trip from Mumbai to Pune.",
+    createdAt: new Date().toISOString(),
+    isRead: false,
+    link: "/trips/1",
+  },
+  {
+    id: "2",
+    type: "alert",
+    title: "Trip Delayed",
+    description: "Trip #23 has been delayed due to weather conditions.",
+    createdAt: new Date(Date.now() - 3600000).toISOString(),
+    isRead: false,
+    link: "/trips/23",
+  },
+  {
+    id: "3",
+    type: "info",
+    title: "Trip Completed",
+    description: "Trip #12 has been successfully completed.",
+    createdAt: new Date(Date.now() - 86400000).toISOString(),
+    isRead: true,
+    link: "/trips/12",
+  },
+];
+
+export function NotificationPopover() {
+  const [notifications, setNotifications] = useState<Notification[]>([]);
+  const [open, setOpen] = useState(false);
+  const router = useRouter();
+
+  useEffect(() => {
+    const fetchNotifications = async () => {
+      await new Promise((res) => setTimeout(res, 300));
+      setNotifications(mockNotifications);
+    };
+    fetchNotifications();
+  }, []);
+
+  const handleNotificationClick = (id: string, link: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: true } : n))
+    );
+    router.push(link);
+    setOpen(false);
+  };
+
+  const handleMarkAllAsRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+
+  const unreadCount = notifications.filter((n) => !n.isRead).length;
+
+  // Icon based on notificationtype
+
+  const getIcon = (type: string) => {
+    switch (type) {
+      case "trip":
+        return <MapPin className="w-4 h-4 text-blue-500" />;
+      case "alert":
+        return <Info className="w-4 h-4 text-red-500" />;
+      default:
+        return <Clock className="w-4 h-4 text-muted-foreground" />;
+    }
+  };
+
+  const getDateGroup = (date: string) => {
+    const d = new Date(date);
+    if (isToday(d)) return "Today";
+    if (isYesterday(d)) return "Yesterday";
+    return format(d, "dd MMM yyyy");
+  };
+
+  const groupedNotifications = notifications.reduce<
+    Record<string, Notification[]>
+  >((acc, noti) => {
+    const group = getDateGroup(noti.createdAt);
+    acc[group] = acc[group] || [];
+    acc[group].push(noti);
+    return acc;
+  }, {});
+
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button variant="ghost" size="icon" className="relative">
+          <Bell className="h-5 w-5" />
+          {unreadCount > 0 && (
+            <span className="absolute -top-1 -right-1 bg-red-500 text-white text-[10px] min-w-[16px] h-[16px] px-[4px] rounded-full flex items-center justify-center border border-white shadow-md">
+              {unreadCount}
+            </span>
+          )}
+        </Button>
+      </PopoverTrigger>
+
+      <PopoverContent className="w-96 p-0">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b">
+          <span className="text-sm font-semibold">Notifications</span>
+          {unreadCount > 0 && (
+            <button
+              onClick={handleMarkAllAsRead}
+              className="text-xs text-blue-600 hover:underline"
+            >
+              Mark all as read
+            </button>
+          )}
+        </div>
+
+        {/* Body */}
+        <div className="max-h-96 overflow-y-auto">
+          {notifications.length === 0 ? (
+            <div className="p-4 text-sm text-muted-foreground text-center">
+              No notifications
+            </div>
+          ) : (
+            Object.entries(groupedNotifications).map(([group, groupItems]) => (
+              <div key={group}>
+                <div className="px-4 pt-3 text-xs text-muted-foreground font-semibold">
+                  {group}
+                </div>
+                {groupItems.map((notification) => (
+                  <button
+                    key={notification.id}
+                    onClick={() =>
+                      handleNotificationClick(
+                        notification.id,
+                        notification.link
+                      )
+                    }
+                    className={`w-full text-left px-4 py-3 hover:bg-muted/50 transition ${!notification.isRead ? "bg-accent/20" : "bg-background"
+                      }`}
+                  >
+                    <div className="flex items-start gap-3">
+                      <div className="mt-1">{getIcon(notification.type)}</div>
+                      <div className="flex-1">
+                        <div className="flex items-center justify-between">
+                          <h4 className="text-sm font-semibold text-foreground">
+                            {notification.title}
+                          </h4>
+                          {!notification.isRead && (
+                            <span className="ml-2 w-2 h-2 rounded-full bg-red-500"></span>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground leading-snug mb-1">
+                          {notification.description}
+                        </p>
+                        <div className="flex justify-between items-center">
+                          <span className="text-[11px] text-gray-500">
+                            {formatDistanceToNow(
+                              new Date(notification.createdAt),
+                              { addSuffix: true }
+                            )}
+                          </span>
+                          <span className="text-xs text-blue-600 hover:underline">
+                            View →
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            ))
+          )}
+        </div>
+      </PopoverContent>
+    </Popover>
+  );
+}
