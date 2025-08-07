@@ -1,0 +1,305 @@
+"use client";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { GoogleMap, useLoadScript } from "@react-google-maps/api";
+import routesData from "@/mock/polyline.json"
+
+type Step = {
+  from: [number, number];
+  to?: [number, number];
+  distance?: number | string;
+  duration?: string;
+};
+
+type Route = {
+  totalDistance: number;
+  totalDuration?: string;
+  polyline: string[][] | string[];
+  steps?: Step[];
+};
+
+type RoutesJson = Route[];
+
+const libraries: ("geometry")[] = ["geometry"];
+
+const dark_colors = [
+  "#8B0000", "#8B4513", "#556B2F", "#228B22", "#800000",
+  "#006400", "#008080", "#191970", "#000080", "#483D8B",
+  "#7B3F00", "#4B0082", "#2F4F4F", "#9400D3", "#8B008B",
+  "#008B8B", "#9932CC", "#696969", "#A9A9A9", "#B8860B",
+];
+
+function generateColor(i: number) {
+  return dark_colors[i % dark_colors.length];
+}
+
+function createNumberedSvgDataUrl(n: number, fill = "black", textColor = "white") {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30'>
+    <circle cx='15' cy='15' r='13' fill='${fill}'/>
+    <text x='15' y='20' text-anchor='middle' font-size='14' fill='${textColor}' font-weight='bold'>${n}</text>
+  </svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+}
+
+export default function RoutesMap() {
+  const { isLoaded, loadError } = useLoadScript({
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "",
+    libraries: libraries as unknown as string[],
+  });
+
+  const [routes, setRoutes] = useState<RoutesJson | null>(null);
+  const [visible, setVisible] = useState<boolean[]>([]);
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  const polylinesRef = useMemo(() => [] as google.maps.Polyline[], []);
+  const markersRef = useMemo(() => [] as google.maps.Marker[][], []);
+
+  // Fetch routes data
+  useEffect(() => {
+    const fetchRoutes = async () => {
+      try {
+        setLoading(true);
+        setError(null);
+
+        // Replace this URL with your actual API endpoint
+        // const response = await fetch('/api/routes'); // or your actual API endpoint
+        const response = routesData
+
+        // if (!response.ok) {
+        //   throw new Error(`Failed to fetch routes: ${response.status} ${response.statusText}`);
+        // }
+
+        const data: RoutesJson = await response;
+
+        setRoutes(data);
+        setVisible(new Array(Math.max(0, data.length)).fill(true));
+
+        // Initialize markersRef array length
+        markersRef.length = 0;
+        for (let i = 0; i < data.length; i++) {
+          markersRef[i] = [];
+        }
+
+      } catch (err) {
+        console.error("Failed to fetch routes:", err);
+        setError(err instanceof Error ? err.message : "Failed to load routes");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchRoutes();
+  }, [markersRef]);
+
+  // Cleanup on unmount
+  useEffect(() => {
+    return () => {
+      polylinesRef.forEach((p) => p.setMap(null));
+      markersRef.forEach((arr) => arr.forEach((m) => m.setMap(null)));
+    };
+  }, [polylinesRef, markersRef]);
+
+  const onMapLoad = useCallback((m: google.maps.Map) => {
+    setMap(m);
+  }, []);
+
+  // Draw routes when routes or map change
+  useEffect(() => {
+    if (!map || !routes) return;
+
+    // Clear previous
+    polylinesRef.forEach((p) => p.setMap(null));
+    polylinesRef.length = 0;
+    markersRef.forEach((arr) => arr.forEach((m) => m.setMap(null)));
+    markersRef.forEach((_, i) => markersRef[i] = []);
+
+    routes.forEach((route, i) => {
+      // Get polyline string
+      let polyStr: string;
+      if (Array.isArray(route.polyline)) {
+        polyStr = route.polyline[0] as string;
+      } else {
+        polyStr = route.polyline as string;
+      }
+
+      // Decode polyline path
+      let path: google.maps.LatLngLiteral[] = [];
+      try {
+        if (typeof polyStr === "string") {
+          const decoded = google.maps.geometry.encoding.decodePath(polyStr);
+          path = decoded.map((p) => ({ lat: p.lat(), lng: p.lng() }));
+        } else if (Array.isArray(polyStr)) {
+          path = polyStr.map((p: any) => ({ lat: p[0], lng: p[1] }));
+        }
+      } catch (err) {
+        console.warn("Error decoding polyline for route", i, err);
+      }
+
+      // Draw polyline
+      const color = generateColor(i);
+      const poly = new google.maps.Polyline({
+        path,
+        geodesic: true,
+        strokeColor: color,
+        strokeOpacity: 1.0,
+        strokeWeight: 6,
+        map: visible[i] ? map : null,
+      });
+      polylinesRef.push(poly);
+
+      // Create markers for steps
+      markersRef[i] = [];
+      (route.steps ?? []).forEach((step: Step, j: number) => {
+        const [lat, lng] = step.from;
+        const svgUrl = createNumberedSvgDataUrl(j + 1, color, "white");
+
+        const marker = new google.maps.Marker({
+          position: { lat, lng },
+          icon: {
+            url: svgUrl,
+            scaledSize: new google.maps.Size(30, 30),
+            anchor: new google.maps.Point(15, 15),
+          },
+          map: visible[i] ? map : null,
+        });
+        markersRef[i].push(marker);
+
+        // Info window for step markers
+        const prevDistanceKm = j > 0 ? Math.round(((route.steps ?? [])[j - 1].distance as number || 0) / 1000) : 0;
+        let formatted = "0:00:00";
+        if (j > 0 && (route.steps ?? [])[j - 1].duration) {
+          const durStr = (route.steps ?? [])[j - 1].duration!;
+          const seconds = parseInt(String(durStr).replace(/\D/g, ""), 10) || 0;
+          formatted = new Date(seconds * 1000).toISOString().substr(11, 8);
+        }
+
+        const info = new google.maps.InfoWindow({
+          content: `<div style="color:black;">
+            <b>Stop ${j + 1}</b><br>
+            ${j > 0 ? `Distance: ${prevDistanceKm} km<br>Duration: ${formatted}` : 'Starting Point'}
+          </div>`,
+        });
+
+        marker.addListener("mouseover", () => info.open(map, marker));
+        marker.addListener("mouseout", () => info.close());
+      });
+
+      // Add final destination marker
+      const steps = route.steps ?? [];
+      if (steps.length > 0) {
+        const last = steps[steps.length - 1];
+        const [lat, lng] = last.to ?? last.from;
+        const svgUrl = createNumberedSvgDataUrl(steps.length + 1, color, "white");
+
+        const marker = new google.maps.Marker({
+          position: { lat, lng },
+          icon: {
+            url: svgUrl,
+            scaledSize: new google.maps.Size(30, 30),
+            anchor: new google.maps.Point(15, 15),
+          },
+          map: visible[i] ? map : null,
+        });
+        markersRef[i].push(marker);
+
+        const distKm = Math.round(((last.distance as number || 0) / 1000) * 10) / 10;
+        const seconds = parseInt(String(last.duration ?? "").replace(/\D/g, ""), 10) || 0;
+        const formatted = new Date(seconds * 1000).toISOString().substr(11, 8);
+
+        const info = new google.maps.InfoWindow({
+          content: `<div style="color:black;">
+            <b>Destination</b><br>
+            Distance: ${distKm} km<br>
+            Duration: ${formatted}
+          </div>`,
+        });
+
+        marker.addListener("mouseover", () => info.open(map, marker));
+        marker.addListener("mouseout", () => info.close());
+      }
+    });
+
+    // Fit bounds to show all routes
+    if (routes.length > 0 && polylinesRef.length > 0) {
+      const bounds = new google.maps.LatLngBounds();
+      polylinesRef.forEach(polyline => {
+        const path = polyline.getPath();
+        if (path && path.getArray) {
+          path.getArray().forEach((point: any) => {
+            bounds.extend(point);
+          });
+        }
+      });
+      if (!bounds.isEmpty()) {
+        map.fitBounds(bounds);
+      }
+    }
+  }, [map, routes, visible]);
+
+  if (loadError) return <div>Map load error: {String(loadError)}</div>;
+  if (!isLoaded) return <div>Loading maps...</div>;
+
+  return (
+    <div className="w-full h-screen relative">
+      {/* Control panel */}
+      <div className="absolute z-20 left-4 top-6 bg-white/90 backdrop-blur rounded-lg p-3 shadow-md max-h-[70vh] overflow-auto">
+        <div className="font-semibold mb-2">Routes</div>
+
+        {loading && <div className="text-sm text-gray-500">Loading routes…</div>}
+
+        {error && (
+          <div className="text-sm text-red-500 mb-2">
+            Error: {error}
+            <button
+              onClick={() => window.location.reload()}
+              className="ml-2 text-blue-500 underline"
+            >
+              Retry
+            </button>
+          </div>
+        )}
+
+        {routes && routes.map((route, i) => {
+          const distanceKm = Math.round((route.totalDistance ?? 0) / 1000);
+          return (
+            <label key={i} className="flex items-center gap-2 text-sm mb-1">
+              <input
+                type="checkbox"
+                checked={visible[i] ?? true}
+                onChange={(e) => {
+                  const copy = [...visible];
+                  copy[i] = e.target.checked;
+                  setVisible(copy);
+
+                  // Toggle map objects immediately
+                  if (polylinesRef[i]) {
+                    polylinesRef[i].setMap(e.target.checked ? map : null);
+                  }
+                  (markersRef[i] ?? []).forEach((m) => {
+                    m.setMap(e.target.checked ? map : null);
+                  });
+                }}
+              />
+              <div
+                className="w-3 h-3 rounded-full mr-1"
+                style={{ backgroundColor: generateColor(i) }}
+              />
+              <span className="font-medium">Route {i + 1}</span>
+              <span className="text-gray-500 ml-1">({distanceKm} km)</span>
+            </label>
+          );
+        })}
+      </div>
+
+      {/* Map */}
+      <GoogleMap
+        onLoad={onMapLoad}
+        mapContainerStyle={{ width: "100%", height: "100%" }}
+        center={{ lat: 23.2599, lng: 77.4126 }}
+        zoom={6}
+      />
+    </div>
+  );
+}
