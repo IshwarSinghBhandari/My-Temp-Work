@@ -1,0 +1,156 @@
+"use client";
+
+import { RootState } from "@/store";
+import { getOptimizerAPI } from "@/utils/services/optimizerAPI";
+import React, { Suspense, useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { Canvas } from "@react-three/fiber";
+import { Truck } from "@/types/optimizer";
+import TruckModel32ft from "./3dComponents/TruckModel32ft";
+import { Html, OrbitControls } from "@react-three/drei";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../ui/select";
+import TruckDetails from "./3dComponents/VehicleDetails";
+import CustomerDetail from "./3dComponents/CustomerDetail";
+import { FileText } from "lucide-react";
+import { Loader2 } from "lucide-react";
+import { Spinner } from "../ui/spinner";
+import { SELECTED_TRUCK_INDEX_SESSION_STORAGE } from "@/utils/constants";
+
+type ChildComponentProps = {
+  visibleArray: boolean[];
+  setvisibleArray: React.Dispatch<React.SetStateAction<boolean[]>>;
+};
+
+function TruckModel({ visibleArray, setvisibleArray }: ChildComponentProps) {
+  const dispatch = useDispatch();
+  const [index, setIndex] = useState(() => {
+    const stored = sessionStorage.getItem(SELECTED_TRUCK_INDEX_SESSION_STORAGE);
+    return stored ? Number(stored) : 0;
+  });
+
+  const [isLoaded, setIsLoaded] = useState(false);
+  const [prevIndex, setPrevIndex] = useState(index);
+
+  // Reset loader manually when truck changes
+  useEffect(() => {
+    if (index !== prevIndex) {
+      setIsLoaded(false);
+      setPrevIndex(index);
+    }
+  }, [index, prevIndex]);
+
+  const optimizerData = useSelector((state: RootState) => state.optimizer.data);
+  const truck: Truck[] | undefined = optimizerData?.data.trucks;
+
+  useEffect(() => {
+    sessionStorage.setItem(SELECTED_TRUCK_INDEX_SESSION_STORAGE, String(index));
+  }, [index]);
+
+  useEffect(() => {
+    if (!optimizerData) {
+      const getData = async () => {
+        try {
+          // await getOptimizerAPI(dispatch);
+        } catch (err) {
+          console.error("Error fetching optimizer data:", err);
+        }
+      };
+      getData();
+    }
+  }, [optimizerData, dispatch]);
+
+
+  return (
+    <div className="h-full relative">
+
+      <div className="flex gap-3 absolute top-3 left-5 z-10">
+        {truck && truck.length > 1 && (
+          <div className="h-9">
+            <Select
+              onValueChange={(e) => {
+                let newArray = new Array(visibleArray.length).fill(false);
+                newArray[Number(e)] = true;
+                setvisibleArray(newArray);
+                setIndex(Number(e));
+                setIsLoaded(false); // Reset loader
+              }}
+              value={`${index}`}
+            >
+              <SelectTrigger className="w-[220px] border bg-white dark:bg-black text-[15px] text-black dark:text-white">
+                <SelectValue placeholder="Select a truck" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectGroup>
+                  {truck.map((t, i) => (
+                    <SelectItem value={`${i}`} key={i}>
+                      Truck {i + 1} - {t.name || "Unnamed Truck"}
+                    </SelectItem>
+                  ))}
+                </SelectGroup>
+              </SelectContent>
+            </Select>
+          </div>
+        )}
+
+        {truck && truck.length > 0 && (
+          <div className="flex items-center gap-2 bg-white dark:bg-black rounded-sm shadow px-4 py-2 h-9">
+            <FileText className="w-5" />
+            | <span>Truck:</span> {index + 1} / {truck.length}
+          </div>
+        )}
+
+        {truck && truck.length > 0 && <TruckDetails selectedTruck={truck[index]} />}
+        {truck && <CustomerDetail truck={truck} index={index} />}
+      </div>
+
+      {!isLoaded && (
+        <div className="flex items-center justify-center h-full w-full absolute inset-0 z-0">
+          <Loader2 className="h-6 w-6 mr-2 animate-spin" />
+          <span className="text-sm">Loading truck model...</span>
+        </div>
+      )}
+
+      {optimizerData && (
+        <Canvas
+          className="h-100 bg-gray-200 dark:bg-gray-600"
+          camera={{ position: [6, 6, 6], fov: 45 }}
+          shadows
+        >
+          <ambientLight intensity={0.6} />
+          <directionalLight position={[10, 20, 10]} intensity={1} castShadow />
+          {!isLoaded && (
+            <Html center>
+              <div className="flex w-[220px] items-center gap-2 p-4 bg-white rounded shadow">
+                <Spinner />
+                <span className="text-sm">Loading truck model...</span>
+              </div>
+            </Html>
+          )}
+
+          <Suspense fallback={null}>
+            {truck && (
+              <TruckModel32ft
+                key={index}
+                truck={truck[index]}
+                onLoaded={() => setIsLoaded(true)}
+              />
+            )}
+          </Suspense>
+
+
+          <OrbitControls enableZoom={true} />
+        </Canvas>
+      )}
+
+    </div>
+  );
+}
+
+export default TruckModel;
