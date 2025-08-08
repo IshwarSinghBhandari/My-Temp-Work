@@ -1,0 +1,183 @@
+"use client";
+
+import React, { useEffect, useMemo, useState, useCallback } from "react";
+import {
+  GoogleMap,
+  useJsApiLoader,
+} from "@react-google-maps/api";
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuCheckboxItem,
+} from "@/app/components/ui/dropdown-menu";
+import { Button } from "@/app/components/ui/button";
+import { Eye, EyeOff, Check } from "lucide-react";
+import routesData from "@/mock/polyline.json";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { darkStyle, lightStyle } from "@/utils/color/mapThemeColor";
+
+const libraries: ("geometry")[] = ["geometry"];
+const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+
+const darkColors = ["#FF5722", "#9C27B0", "#2196F3", "#4CAF50", "#FFC107"];
+const generateColor = (i: number) => darkColors[i % darkColors.length];
+
+const createNumberedSvgDataUrl = (n: number, fill = "black", textColor = "white") => {
+  const svg = `<svg xmlns='http://www.w3.org/2000/svg' width='30' height='30'>
+    <circle cx='15' cy='15' r='13' fill='${fill}'/>
+    <text x='15' y='20' text-anchor='middle' font-size='14' fill='${textColor}' font-weight='bold'>${n}</text>
+  </svg>`;
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
+
+export default function RoutesMap() {
+  const themeMode = useSelector((state: RootState) => state.theme.mode);
+  const mapThemeStyle = themeMode === "dark" ? darkStyle : lightStyle;
+
+  const { isLoaded } = useJsApiLoader({
+    googleMapsApiKey,
+    libraries,
+  });
+
+  const [map, setMap] = useState<google.maps.Map | null>(null);
+  const [visibleArray, setVisibleArray] = useState<boolean[]>([]);
+  const [showAll, setShowAll] = useState(false);
+
+  const polylinesRef = useMemo(() => [] as google.maps.Polyline[], []);
+  const markersRef = useMemo(() => [] as google.maps.Marker[][], []);
+
+  const routes = routesData;
+
+  const center = useMemo(() => {
+    const first = routes[0]?.steps?.[0]?.from || [0, 0];
+    return { lat: first[0], lng: first[1] };
+  }, []);
+
+  useEffect(() => {
+    setVisibleArray(routes.map((_, i) => i === 0));
+  }, []);
+
+  const fitMapToVisibleRoutes = useCallback(() => {
+    if (!map || !routes.length) return;
+    const bounds = new google.maps.LatLngBounds();
+    visibleArray.forEach((visible, i) => {
+      if (!visible) return;
+      const polyline = polylinesRef[i];
+      polyline?.getPath().forEach((latLng) => bounds.extend(latLng));
+    });
+    map.fitBounds(bounds);
+  }, [map, visibleArray]);
+
+  const onMapLoad = useCallback((m: google.maps.Map) => {
+    setMap(m);
+  }, []);
+
+  useEffect(() => {
+    if (!map || !isLoaded) return;
+
+    // Cleanup
+    polylinesRef.forEach((p) => p.setMap(null));
+    markersRef.forEach((group) => group.forEach((m) => m.setMap(null)));
+    polylinesRef.length = 0;
+    markersRef.length = 0;
+
+    routes.forEach((route, i) => {
+      markersRef[i] = [];
+      const polylineStr = Array.isArray(route.polyline)
+        ? route.polyline[0]
+        : route.polyline;
+
+      const path =
+        typeof polylineStr === "string"
+          ? google.maps.geometry.encoding
+            .decodePath(polylineStr)
+            .map((p) => ({ lat: p.lat(), lng: p.lng() }))
+          : polylineStr.map((p: any) => ({ lat: p[0], lng: p[1] }));
+
+      const poly = new google.maps.Polyline({
+        path,
+        strokeColor: generateColor(i),
+        strokeOpacity: 1,
+        strokeWeight: 4,
+        map: visibleArray[i] ? map : null,
+      });
+
+      polylinesRef[i] = poly;
+
+      (route.steps ?? []).forEach((step, j) => {
+        const marker = new google.maps.Marker({
+          position: { lat: step.from[0], lng: step.from[1] },
+          icon: {
+            url: createNumberedSvgDataUrl(j + 1),
+            scaledSize: new google.maps.Size(30, 30),
+            anchor: new google.maps.Point(15, 15),
+          },
+          map: visibleArray[i] ? map : null,
+        });
+        markersRef[i].push(marker);
+      });
+    });
+
+    fitMapToVisibleRoutes();
+  }, [map, isLoaded, visibleArray]);
+
+  if (!isLoaded) return <div className="p-4">Loading map...</div>;
+
+  return (
+    <div className="relative w-full h-screen">
+      <GoogleMap
+        mapContainerStyle={{ width: "100%", height: "100%" }}
+        center={center}
+        zoom={5}
+        onLoad={onMapLoad}
+        options={{ styles: mapThemeStyle }}
+      />
+
+      {/* Controls */}
+      <div className="absolute top-4 left-4 z-10 flex flex-col gap-2 bg-white dark:bg-black rounded-lg p-4 shadow-md">
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm">
+              {showAll ? "Hide All Routes" : "Show All Routes"}
+              {showAll ? <EyeOff className="ml-2 w-4 h-4" /> : <Eye className="ml-2 w-4 h-4" />}
+            </Button>
+          </DropdownMenuTrigger>
+
+          <DropdownMenuContent className="w-[220px]" forceMount>
+            {routes.map((_, i) => (
+              <DropdownMenuCheckboxItem
+                key={i}
+                checked={visibleArray[i] ?? false}
+                onCheckedChange={(value) => {
+                  const updated = [...visibleArray];
+                  updated[i] = !!value;
+                  setVisibleArray(updated);
+                }}
+                className="flex justify-between items-center"
+              >
+                Route {i + 1}
+                {visibleArray[i] && <Check className="w-4 h-4 text-blue-600" />}
+              </DropdownMenuCheckboxItem>
+            ))}
+          </DropdownMenuContent>
+        </DropdownMenu>
+
+        <Button
+          size="sm"
+          variant="secondary"
+          onClick={() => {
+            const newVisibility = showAll
+              ? routes.map((_, i) => i === 0)
+              : routes.map(() => true);
+            setVisibleArray(newVisibility);
+            setShowAll(!showAll);
+          }}
+        >
+          {showAll ? "Reset to Default" : "Enable All"}
+        </Button>
+      </div>
+    </div>
+  );
+}
