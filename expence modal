@@ -1,0 +1,422 @@
+import React, { useState } from "react";
+import { X, Paperclip, PlusCircle, MinusCircle } from "lucide-react";
+
+// NOTE: This file is a single-file React + Tailwind (shadcn-style) component
+// intended to be used in a Next.js app. It uses Tailwind utility classes and
+// shadcn-like component names (Button, Input, Label, Dialog, Toast) — you may
+// already have these in your project. If not, replace them with your project's
+// equivalents or the plain HTML elements provided here.
+
+/* ----------------------------- Types & Helpers ---------------------------- */
+
+type Row = {
+  id: string;
+  estimated: string;
+  files: File[];
+};
+
+const uid = () => `${Date.now()}-${Math.random().toString(36).slice(2, 9)}`;
+
+/* ------------------------- Reusable Heading Component --------------------- */
+export function ModalHeader({ title, step }: { title: string; step?: string }) {
+  return (
+    <div className="flex items-start justify-between mb-4">
+      <div>
+        <h3 className="text-lg font-medium">{title}</h3>
+        {step && <div className="text-sm text-muted-foreground">{step}</div>}
+      </div>
+      <button className="p-1 rounded-md hover:bg-gray-100">
+        <X size={18} />
+      </button>
+    </div>
+  );
+}
+
+/* --------------------------- Fuel Calculator Modal ------------------------ */
+export function FuelCalculatorModal({
+  open,
+  onClose,
+  onUse,
+}: {
+  open: boolean;
+  onClose: () => void;
+  onUse: (amount: number) => void;
+}) {
+  const [kmDriven, setKmDriven] = useState("");
+  const [mileage, setMileage] = useState("");
+  const [fuelCost, setFuelCost] = useState("");
+
+  const calculate = () => {
+    const km = parseFloat(kmDriven || "0");
+    const mil = parseFloat(mileage || "0");
+    const cost = parseFloat(fuelCost || "0");
+    if (!km || !mil || !cost) return 0;
+    // Basic formula: liters used = km / mileage ; total cost = liters * cost
+    const liters = km / mil;
+    const total = liters * cost;
+    return Math.round(total);
+  };
+
+  if (!open) return null;
+
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40">
+      <div className="bg-white rounded-lg shadow-lg max-w-md w-full p-6">
+        <ModalHeader title="Fuel Calculation Section" />
+
+        <div className="grid grid-cols-2 gap-3">
+          <label className="flex flex-col">
+            <span className="text-sm text-muted-foreground">Km Driven</span>
+            <input
+              value={kmDriven}
+              onChange={(e) => setKmDriven(e.target.value)}
+              className="mt-1 input"
+              placeholder="e.g. 200"
+              type="number"
+            />
+          </label>
+
+          <label className="flex flex-col">
+            <span className="text-sm text-muted-foreground">Mileage (km/l)</span>
+            <input
+              value={mileage}
+              onChange={(e) => setMileage(e.target.value)}
+              className="mt-1 input"
+              placeholder="e.g. 10"
+              type="number"
+            />\label>
+
+          <label className="flex flex-col">
+            <span className="text-sm text-muted-foreground">Fuel Cost/₹</span>
+            <input
+              value={fuelCost}
+              onChange={(e) => setFuelCost(e.target.value)}
+              className="mt-1 input"
+              placeholder="e.g. 90"
+              type="number"
+            />
+          </label>
+
+          <div className="flex flex-col justify-end">
+            <div className="text-sm text-muted-foreground">Fuel Required</div>
+            <div className="mt-1 text-base font-semibold">{(kmDriven && mileage) ? `${(parseFloat(kmDriven || '0')/parseFloat(mileage || '1')).toFixed(2)} L` : "-"}</div>
+          </div>
+        </div>
+
+        <div className="mt-4 flex items-center justify-between">
+          <div className="text-lg font-semibold">Total amount</div>
+          <div className="text-xl font-bold">₹{calculate()}</div>
+        </div>
+
+        <div className="mt-4 flex justify-end gap-2">
+          <button className="btn btn-ghost" onClick={onClose}>
+            Cancel
+          </button>
+          <button
+            className="btn btn-primary"
+            onClick={() => {
+              const val = calculate();
+              onUse(val);
+              onClose();
+            }}
+          >
+            Use this
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------- Step One -------------------------------- */
+export function StepOne({
+  rows,
+  setRows,
+  onNext,
+  allowMultiple = true,
+  onOpenFuel,
+}: {
+  rows: Row[];
+  setRows: (r: Row[]) => void;
+  onNext: () => void;
+  allowMultiple?: boolean;
+  onOpenFuel: () => void;
+}) {
+  // Local validation and handlers
+  const updateEstimated = (id: string, value: string) => {
+    setRows(rows.map((r) => (r.id === id ? { ...r, estimated: value } : r)));
+  };
+
+  const addRow = () => {
+    setRows([...rows, { id: uid(), estimated: "", files: [] }]);
+  };
+
+  const removeRow = (id: string) => {
+    setRows(rows.filter((r) => r.id !== id));
+  };
+
+  const onFileChange = (id: string, files: FileList | null) => {
+    if (!files) return;
+    const arr = Array.from(files);
+    setRows(rows.map((r) => (r.id === id ? { ...r, files: [...r.files, ...arr] } : r)));
+  };
+
+  return (
+    <div>
+      <div className="mb-3 flex justify-between items-center">
+        <h4 className="font-medium">Fuel</h4>
+        <button className="text-sm underline" onClick={onOpenFuel}>
+          Calculate
+        </button>
+      </div>
+
+      <div className="grid grid-cols-2 gap-4">
+        {rows.map((row, idx) => (
+          <div key={row.id} className="bg-white p-3 rounded border">
+            <label className="text-sm text-muted-foreground">Estimated (₹)</label>
+            <input
+              value={row.estimated}
+              onChange={(e) => updateEstimated(row.id, e.target.value)}
+              className="mt-1 input w-full"
+              type="number"
+              required
+            />
+
+            <label className="text-sm text-muted-foreground mt-3 flex items-center gap-2">
+              {/* Replace label text with Paperclip icon as requested */}
+              <Paperclip />
+              <span>Attachment</span>
+            </label>
+            <div className="mt-1 flex items-center gap-2">
+              <input
+                onChange={(e) => onFileChange(row.id, e.target.files)}
+                type="file"
+                multiple={allowMultiple}
+                className="hidden"
+                id={`file-${row.id}`}
+              />
+
+              <label htmlFor={`file-${row.id}`} className="btn btn-outline btn-sm cursor-pointer">
+                <Paperclip className="mr-2" /> Upload
+              </label>
+
+              {allowMultiple && (
+                <button
+                  type="button"
+                  onClick={() => removeRow(row.id)}
+                  className="p-1 rounded hover:bg-gray-100 ml-auto"
+                >
+                  <MinusCircle />
+                </button>
+              )}
+            </div>
+
+            {/* show previews */}
+            {row.files.length > 0 && (
+              <div className="mt-2 text-sm">
+                {row.files.map((f, i) => (
+                  <div key={i} className="flex items-center gap-2 text-xs">
+                    <Paperclip size={14} /> <span>{f.name}</span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 flex justify-between">
+        <div>
+          <button type="button" className="btn btn-link" onClick={addRow}>
+            <PlusCircle className="inline mr-2" /> Add more
+          </button>
+        </div>
+
+        <div className="flex gap-2">
+          <button className="btn btn-ghost" onClick={() => {
+            // Reset logic: clear all rows
+            setRows([{ id: uid(), estimated: "", files: [] }]);
+          }}>Reset</button>
+          <button className="btn btn-primary" onClick={onNext}>Next</button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* -------------------------------- Step Two -------------------------------- */
+export function StepTwo({
+  rows,
+  setRows,
+  onBack,
+  onSubmit,
+  allowMultiple = true,
+}: {
+  rows: Row[];
+  setRows: (r: Row[]) => void;
+  onBack: () => void;
+  onSubmit: () => void;
+  allowMultiple?: boolean;
+}) {
+  // For brevity, StepTwo will mirror StepOne structure but with more fields.
+  // You can expand fields similarly (Toll, Driver Allowance, etc.).
+
+  const [extraRows, setExtraRows] = useState<Row[]>([
+    { id: uid(), estimated: "", files: [] },
+  ]);
+
+  const addExtra = () => setExtraRows([...extraRows, { id: uid(), estimated: "", files: [] }]);
+  const removeExtra = (id: string) => setExtraRows(extraRows.filter((r) => r.id !== id));
+
+  const total = () => {
+    const sumRows = rows.reduce((s, r) => s + (parseFloat(r.estimated || "0") || 0), 0);
+    const sumExtra = extraRows.reduce((s, r) => s + (parseFloat(r.estimated || "0") || 0), 0);
+    return Math.round(sumRows + sumExtra);
+  };
+
+  return (
+    <div>
+      <h4 className="font-medium mb-3">Misc (MSC)</h4>
+
+      <div className="grid grid-cols-2 gap-4">
+        {extraRows.map((r) => (
+          <div key={r.id} className="bg-white p-3 rounded border">
+            <label className="text-sm text-muted-foreground">Estimated (₹)</label>
+            <input
+              value={r.estimated}
+              onChange={(e) => setExtraRows(extraRows.map(x => x.id===r.id?{...x, estimated:e.target.value}:x))}
+              className="mt-1 input w-full"
+              type="number"
+              required
+            />
+
+            <label className="text-sm text-muted-foreground mt-3 flex items-center gap-2">
+              <Paperclip />
+              <span>Attachment</span>
+            </label>
+
+            <div className="mt-2 flex justify-between items-center">
+              <div />
+              <div className="flex items-center gap-2">
+                {allowMultiple && (
+                  <button onClick={() => removeExtra(r.id)} className="p-1 rounded hover:bg-gray-100">
+                    <MinusCircle />
+                  </button>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-3 flex justify-between items-center">
+        <button className="btn btn-link" onClick={addExtra}><PlusCircle className="mr-2 inline"/>Add more</button>
+
+        <div className="text-right">
+          <div className="text-sm">Total amount</div>
+          <div className="text-xl font-bold">₹{total()}</div>
+        </div>
+      </div>
+
+      <div className="mt-4 flex justify-end gap-2">
+        <button className="btn btn-ghost" onClick={onBack}>
+          Back
+        </button>
+        <button className="btn btn-primary" onClick={onSubmit}>
+          Submit
+        </button>
+      </div>
+    </div>
+  );
+}
+
+/* ----------------------------- Main Reusable Form ------------------------- */
+export default function TripActualCostForm({
+  title = "Add Trip Actual Cost",
+  allowMultiple = true,
+  onFinish,
+}: {
+  title?: string;
+  allowMultiple?: boolean;
+  onFinish?: (data: { fuel: Row[]; misc: any }) => void;
+}) {
+  const [step, setStep] = useState(1);
+  const [fuelRows, setFuelRows] = useState<Row[]>([{ id: uid(), estimated: "", files: [] }]);
+  const [showFuelModal, setShowFuelModal] = useState(false);
+
+  // simple toast replacement (you can swap with your project's toast)
+  const toast = (type: "error" | "warning" | "success", msg: string) => alert(`${type.toUpperCase()}: ${msg}`);
+
+  const handleNext = () => {
+    // validation: ensure every estimated has value
+    const invalid = fuelRows.some((r) => !r.estimated || r.estimated.trim() === "");
+    if (invalid) {
+      toast("warning", "Please fill all Estimated fields before proceeding.");
+      return;
+    }
+    setStep(2);
+  };
+
+  const handleSubmit = () => {
+    // final validation
+    const invalid = fuelRows.some((r) => !r.estimated || r.estimated.trim() === "");
+    if (invalid) {
+      toast("error", "Please fill required fields.");
+      return;
+    }
+
+    // call onFinish prop with collected data
+    onFinish && onFinish({ fuel: fuelRows, misc: {} });
+    toast("success", "Submitted successfully");
+  };
+
+  return (
+    <div className="max-w-4xl mx-auto bg-white rounded-lg p-6 shadow"> 
+      {/* Header (reusable heading) */}
+      <div className="flex items-center justify-between mb-4">
+        <div>
+          <h2 className="text-xl font-semibold">{title}</h2>
+          <div className="text-sm text-muted-foreground">Step {step} of 2</div>
+        </div>
+        <div className="w-1/3">
+          <div className="h-2 bg-gray-200 rounded overflow-hidden">
+            <div className={`h-full bg-blue-600`} style={{ width: `${(step / 2) * 100}%` }} />
+          </div>
+        </div>
+      </div>
+
+      {/* Steps area */}
+      <div>
+        {step === 1 && (
+          <StepOne
+            rows={fuelRows}
+            setRows={setFuelRows}
+            onNext={handleNext}
+            allowMultiple={allowMultiple}
+            onOpenFuel={() => setShowFuelModal(true)}
+          />
+        )}
+
+        {step === 2 && (
+          <StepTwo
+            rows={fuelRows}
+            setRows={setFuelRows}
+            onBack={() => setStep(1)}
+            onSubmit={handleSubmit}
+            allowMultiple={allowMultiple}
+          />
+        )}
+      </div>
+
+      {/* Fuel Calculator Modal */}
+      <FuelCalculatorModal
+        open={showFuelModal}
+        onClose={() => setShowFuelModal(false)}
+        onUse={(val) => {
+          // set first fuel row estimated to the value returned
+          setFuelRows((prev) => prev.map((r, i) => (i === 0 ? { ...r, estimated: String(val) } : r)));
+        }}
+      />
+    </div>
+  );
+}
