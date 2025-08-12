@@ -1,0 +1,220 @@
+import React, { useState, useRef, useEffect } from "react";
+import { Camera, FileUp, X, Repeat } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "../ui/dialog";
+import { Input } from "@/components/ui/input";
+
+export default function App() {
+  const [activeInputIndex, setActiveInputIndex] = useState(null);
+  const [showOptions, setShowOptions] = useState(false);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [uploadedFiles, setUploadedFiles] = useState([null, null, null]);
+  const [cameras, setCameras] = useState([]);
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
+
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+  const fileInputRefs = [useRef(null), useRef(null), useRef(null)];
+
+  const handleInputClick = (index) => {
+    setActiveInputIndex(index);
+    setShowOptions(true);
+  };
+
+  const handleOptionClick = (type) => {
+    setShowOptions(false);
+    if (type === "camera") {
+      setShowCameraModal(true);
+    } else if (
+      activeInputIndex !== null &&
+      fileInputRefs[activeInputIndex].current
+    ) {
+      fileInputRefs[activeInputIndex].current.click();
+    }
+  };
+
+  const handleFileChange = (e, index) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const newFiles = [...uploadedFiles];
+      newFiles[index] = file.name;
+      setUploadedFiles(newFiles);
+      console.log(`File selected for input ${index + 1}:`, file);
+    }
+    setActiveInputIndex(null);
+  };
+
+  // Start video stream for a given deviceId
+  const startStream = async (deviceId) => {
+    try {
+      const constraints = deviceId
+        ? { video: { deviceId: { exact: deviceId } } }
+        : { video: { facingMode: "environment" } };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      return stream;
+    } catch (error) {
+      console.error("Error starting camera:", error);
+      setShowCameraModal(false);
+    }
+  };
+
+  // Fetch cameras & start default stream
+  useEffect(() => {
+    let stream;
+    if (showCameraModal) {
+      navigator.mediaDevices
+        .enumerateDevices()
+        .then((devices) => {
+          const videoDevices = devices.filter(
+            (device) => device.kind === "videoinput"
+          );
+          setCameras(videoDevices);
+          if (videoDevices.length > 0) {
+            startStream(videoDevices[currentCameraIndex]?.deviceId).then(
+              (s) => (stream = s)
+            );
+          }
+        })
+        .catch(() => setShowCameraModal(false));
+    }
+
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [showCameraModal, currentCameraIndex]);
+
+  const switchCamera = () => {
+    if (cameras.length > 1) {
+      setCurrentCameraIndex((prev) => (prev + 1) % cameras.length);
+    }
+  };
+
+  const takePhoto = () => {
+    if (videoRef.current && canvasRef.current && activeInputIndex !== null) {
+      const video = videoRef.current;
+      const canvas = canvasRef.current;
+      const ctx = canvas.getContext("2d");
+      canvas.width = video.videoWidth;
+      canvas.height = video.videoHeight;
+      ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+      canvas.toBlob((blob) => {
+        if (blob) {
+          const capturedFile = new File([blob], `photo-${Date.now()}.png`, {
+            type: "image/png",
+          });
+          const newFiles = [...uploadedFiles];
+          newFiles[activeInputIndex] = capturedFile.name;
+          setUploadedFiles(newFiles);
+          console.log(
+            `Photo captured for input ${activeInputIndex + 1}:`,
+            capturedFile
+          );
+        }
+        setShowCameraModal(false);
+        setActiveInputIndex(null);
+      }, "image/png");
+    }
+  };
+
+  return (
+    <div className='min-h-screen flex items-center justify-center p-6 bg-muted'>
+      <div className='max-w-md w-full bg-background border border-border rounded-lg p-6 shadow'>
+        <h1 className='text-2xl font-semibold mb-6 text-center'>
+          File Uploader
+        </h1>
+
+        <div className='space-y-4'>
+          {[0, 1, 2].map((index) => (
+            <div key={index}>
+              <Input
+                readOnly
+                placeholder={`Tap to upload file ${index + 1}`}
+                value={uploadedFiles[index] || ""}
+                onClick={() => handleInputClick(index)}
+                className='cursor-pointer'
+              />
+              <input
+                type='file'
+                ref={fileInputRefs[index]}
+                style={{ display: "none" }}
+                onChange={(e) => handleFileChange(e, index)}
+              />
+            </div>
+          ))}
+        </div>
+
+        {/* Options Dialog */}
+        <Dialog open={showOptions} onOpenChange={setShowOptions}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Choose an option</DialogTitle>
+            </DialogHeader>
+            <div className='flex flex-col space-y-3 mt-4'>
+              <Button
+                variant='default'
+                onClick={() => handleOptionClick("camera")}
+                className='flex items-center gap-2'
+              >
+                <Camera className='w-5 h-5' />
+                Open Camera
+              </Button>
+              <Button
+                variant='outline'
+                onClick={() => handleOptionClick("file")}
+                className='flex items-center gap-2'
+              >
+                <FileUp className='w-5 h-5' />
+                Choose File
+              </Button>
+              <Button
+                variant='destructive'
+                onClick={() => setShowOptions(false)}
+              >
+                Cancel
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Camera Dialog */}
+        <Dialog open={showCameraModal} onOpenChange={setShowCameraModal}>
+          <DialogContent className='flex flex-col items-center gap-4'>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className='w-full max-w-full rounded-md bg-black   object-contain'
+            />
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+            <div className='flex gap-4'>
+              <Button variant='outline' onClick={takePhoto}>
+                <Camera className='w-6 h-6 text-blue-600' />
+              </Button>
+              {cameras.length > 1 && (
+                <Button variant='outline' onClick={switchCamera}>
+                  <Repeat className='w-6 h-6' />
+                </Button>
+              )}
+              <Button
+                variant='destructive'
+                onClick={() => {
+                  setShowCameraModal(false);
+                  setActiveInputIndex(null);
+                }}
+              >
+                <X className='w-6 h-6' />
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+}
