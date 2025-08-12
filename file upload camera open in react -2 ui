@@ -1,0 +1,190 @@
+import React, { useState, useRef, useEffect } from "react";
+import { Camera, FileUp, X, Repeat } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+
+export default function App() {
+  const labels = [
+    "Attach LR First Copy",
+    "Attach LR Back Copy",
+    "Attach Unloading Receipt",
+  ];
+
+  const [uploadedFiles, setUploadedFiles] = useState([null, null, null]);
+  const [activeIndex, setActiveIndex] = useState(null);
+  const [showCameraModal, setShowCameraModal] = useState(false);
+  const [cameras, setCameras] = useState([]);
+  const [currentCameraIndex, setCurrentCameraIndex] = useState(0);
+
+  const videoRef = useRef(null);
+  const canvasRef = useRef(null);
+
+  // Handle file selection from input
+  const handleFileChange = (e, index) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const newFiles = [...uploadedFiles];
+      newFiles[index] = file;
+      setUploadedFiles(newFiles);
+      console.log(`File selected for "${labels[index]}":`, file);
+    }
+  };
+
+  // Start camera stream
+  const startStream = async (deviceId) => {
+    try {
+      const constraints = deviceId
+        ? { video: { deviceId: { exact: deviceId } } }
+        : { video: { facingMode: "environment" } };
+
+      const stream = await navigator.mediaDevices.getUserMedia(constraints);
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+      }
+      return stream;
+    } catch (error) {
+      console.error("Error starting camera:", error);
+      setShowCameraModal(false);
+    }
+  };
+
+  // Load camera list when modal opens
+  useEffect(() => {
+    let stream;
+    if (showCameraModal) {
+      navigator.mediaDevices
+        .enumerateDevices()
+        .then((devices) => {
+          const videoDevices = devices.filter((d) => d.kind === "videoinput");
+          setCameras(videoDevices);
+          if (videoDevices.length > 0) {
+            startStream(videoDevices[currentCameraIndex]?.deviceId).then(
+              (s) => (stream = s)
+            );
+          }
+        })
+        .catch(() => setShowCameraModal(false));
+    }
+    return () => {
+      if (stream) {
+        stream.getTracks().forEach((track) => track.stop());
+      }
+    };
+  }, [showCameraModal, currentCameraIndex]);
+
+  const switchCamera = () => {
+    if (cameras.length > 1) {
+      setCurrentCameraIndex((prev) => (prev + 1) % cameras.length);
+    }
+  };
+
+  // Take photo from camera
+  const takePhoto = () => {
+    if (!videoRef.current || !canvasRef.current || activeIndex === null) return;
+
+    const video = videoRef.current;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext("2d");
+
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+
+    canvas.toBlob((blob) => {
+      if (blob) {
+        const capturedFile = new File([blob], `photo-${Date.now()}.png`, {
+          type: "image/png",
+        });
+        const newFiles = [...uploadedFiles];
+        newFiles[activeIndex] = capturedFile;
+        setUploadedFiles(newFiles);
+        console.log(
+          `Photo captured for "${labels[activeIndex]}":`,
+          capturedFile
+        );
+      }
+      setShowCameraModal(false);
+      setActiveIndex(null);
+    }, "image/png");
+  };
+
+  return (
+    <div className='min-h-screen flex items-center justify-center p-6 bg-muted'>
+      <div className='max-w-md w-full bg-background border border-border rounded-lg p-6 shadow'>
+        <h1 className='text-2xl font-semibold mb-6 text-center'>
+          File Uploader
+        </h1>
+
+        <div className='space-y-4'>
+          {labels.map((label, index) => (
+            <div key={index} className='flex flex-col gap-2'>
+              <label className='text-sm font-medium'>{label}</label>
+              <div className='flex gap-2'>
+                <Input
+                  type='file'
+                  onChange={(e) => handleFileChange(e, index)}
+                  className='cursor-pointer'
+                />
+                <Button
+                  variant='outline'
+                  onClick={() => {
+                    setActiveIndex(index);
+                    setShowCameraModal(true);
+                  }}
+                >
+                  <Camera className='w-5 h-5' />
+                </Button>
+              </div>
+              {uploadedFiles[index] && (
+                <p className='text-xs text-muted-foreground'>
+                  Selected: {uploadedFiles[index].name}
+                </p>
+              )}
+            </div>
+          ))}
+        </div>
+
+        {/* Camera Modal */}
+        <Dialog open={showCameraModal} onOpenChange={setShowCameraModal}>
+          <DialogContent className='flex flex-col items-center gap-4'>
+            <DialogHeader>
+              <DialogTitle>Take Photo</DialogTitle>
+            </DialogHeader>
+            <video
+              ref={videoRef}
+              autoPlay
+              playsInline
+              className='w-full rounded-md bg-black object-contain'
+            />
+            <canvas ref={canvasRef} style={{ display: "none" }} />
+            <div className='flex gap-4'>
+              <Button variant='outline' onClick={takePhoto}>
+                <Camera className='w-6 h-6 text-blue-600' />
+              </Button>
+              {cameras.length > 1 && (
+                <Button variant='outline' onClick={switchCamera}>
+                  <Repeat className='w-6 h-6' />
+                </Button>
+              )}
+              <Button
+                variant='destructive'
+                onClick={() => {
+                  setShowCameraModal(false);
+                  setActiveIndex(null);
+                }}
+              >
+                <X className='w-6 h-6' />
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+      </div>
+    </div>
+  );
+}
