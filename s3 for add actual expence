@@ -1,0 +1,166 @@
+"use client";
+
+import * as React from "react";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../../ui/dialog";
+import StepOneForm from "../common/StepOneForm";
+import StepTwoForm from "../common/StepTwoForm";
+import { useDispatch } from "react-redux";
+import { setTripExpenseFormFilled } from "@/store/slices/expenceSlice";
+import { AddTripProps, TripData, EstimateEntry } from "@/types/TripExpense";
+import { postTripExpenseApi } from "@/utils/services/expanceAPI";
+import { postCreateTripFileToS3 } from "@/utils/services/fileAPI";
+import { toast } from "sonner";
+import { INTENT_MAP } from "@/utils/constants";
+import { AppDispatch } from "@/store";
+
+const AddTripActualCost: React.FC<AddTripProps> = ({ tripId, open, onClose }) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const [step, setStep] = React.useState(1);
+
+  const createInitialExpense = (): EstimateEntry => ({ estimate: "", attachments: [], note: "" });
+
+  const initialFormData = {
+    fuel: createInitialExpense(),
+    toll: [createInitialExpense()],
+    driverAllowance: createInitialExpense(),
+    advanceGivenToDriver: createInitialExpense(),
+    miscellaneous: createInitialExpense(),
+    overspeedFine: createInitialExpense(),
+    overloadFine: createInitialExpense(),
+    entryTimingFine: createInitialExpense(),
+    octroi: createInitialExpense(),
+    stateToll: createInitialExpense(),
+    repair: [createInitialExpense()],
+  };
+
+  const [formData, setFormData] = React.useState(initialFormData);
+
+  const handleNext = () => setStep(2);
+  const handleBack = () => setStep(1);
+
+  /** Collect all new File objects from formData to upload to S3 */
+  const collectFiles = (): Record<string, File[]> => {
+    const payload: Record<string, File[]> = {};
+
+    Object.entries(formData).forEach(([key, value]) => {
+      if (Array.isArray(value)) {
+        const files = value.flatMap(item =>
+          item.attachments.filter(f => f instanceof File)
+        );
+        if (files.length) payload[key] = files;
+      } else if (value.attachments?.length) {
+        const files = value.attachments.filter(f => f instanceof File);
+        if (files.length) payload[key] = files;
+      }
+    });
+
+    return payload;
+  };
+
+  /** Transform formData into API-ready TripData, replacing files with S3 paths */
+  const transformDataWithS3Paths = (uploadedPaths: Record<string, string[]>): TripData[] => {
+    const result: TripData[] = [];
+
+    Object.entries(formData).forEach(([key, value]) => {
+      const intent = INTENT_MAP[key];
+      if (!intent) return;
+
+      const entries = Array.isArray(value) ? value : [value];
+
+      entries.forEach((item, idx) => {
+        if (!item.estimate) return;
+
+        const fileCount = item.attachments.filter(f => f instanceof File).length;
+        const s3Files = uploadedPaths[key]?.splice(0, fileCount) || [];
+
+        result.push({
+          intent,
+          notes: item.note || "",
+          cost: Number(item.estimate),
+          attachments: item.attachments.map(f => (f instanceof File ? s3Files.shift()! : f)),
+        });
+      });
+    });
+
+    return result;
+  };
+
+  /** Handle form submission */
+  const handleSubmit = async () => {
+    try {
+      // 1️⃣ Collect new files
+      const filesPayload = collectFiles();
+
+      // 2️⃣ Upload files to S3
+      const uploadedPaths = await postCreateTripFileToS3(filesPayload, dispatch);
+
+      // 3️⃣ Transform data for API with S3 paths
+      const apiData = transformDataWithS3Paths(uploadedPaths);
+
+      // 4️⃣ Call API
+      const res = await postTripExpenseApi(tripId, "ACTUAL", apiData);
+      dispatch(setTripExpenseFormFilled(true));
+
+      if (res?.success) onClose();
+    } catch (err) {
+      console.error("Submit failed:", err);
+      toast.error("Failed to submit trip actual cost");
+    }
+  };
+
+  const handleResetAll = () => {
+    setFormData(initialFormData);
+  };
+
+  return (
+    <Dialog open={open} onOpenChange={onClose}>
+      <DialogContent className="w-[90%] sm:w-[80%] md:w-[40%] max-w-none sm:max-w-none max-h-[90vh] overflow-hidden px-3 py-6 sm:p-6">
+        <DialogHeader>
+          <DialogTitle className="text-2xl font-bold text-gray-800 dark:text-gray-300">
+            Add Trip Actual Cost
+          </DialogTitle>
+          <span className="ml-4 text-sm text-gray-500 dark:text-gray-300 font-medium whitespace-nowrap text-right">
+            <span className="text-blue-500">Step {step}</span> of 2
+          </span>
+
+          <div className="w-full h-2 bg-blue-100 rounded-full overflow-hidden">
+            <div
+              className={`h-full bg-blue-500 rounded-full transition-all duration-300 ${step === 1 ? "w-1/2" : "w-full"
+                }`}
+            ></div>
+          </div>
+        </DialogHeader>
+
+        {step === 1 && (
+          <StepOneForm
+            formData={formData}
+            setFormData={setFormData}
+            onNext={handleNext}
+            onReset={handleResetAll}
+            allowMultiple={true}
+            lableName="Actual"
+          />
+        )}
+
+        {step === 2 && (
+          <StepTwoForm
+            formData={formData}
+            setFormData={setFormData}
+            onBack={handleBack}
+            onSubmit={handleSubmit}
+            onReset={handleResetAll}
+            lableName="Actual"
+            allowMultiple={true}
+          />
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+};
+
+export default AddTripActualCost;
