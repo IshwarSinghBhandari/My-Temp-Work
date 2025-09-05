@@ -1,0 +1,52 @@
+import React from "react";
+import {
+  GoogleMap,
+  MarkerF,
+  MarkerClustererF,
+  useJsApiLoader,
+} from "@react-google-maps/api";
+
+type MapComponentProps = {
+  trackingLocations: { lat: number; lng: number }[];
+  currentLocation?: { lat: number; lng: number } | null;
+};
+
+const containerStyle = {
+  width: "100%",
+  height: "100%",
+};
+
+const defaultCenter = { lat: 20.5937, lng: 78.9629 }; // India center fallback
+
+const MapComponent: React.FC<MapComponentProps> = ({
+  trackingLocations,
+  currentLocation,
+}) => {
+  const { isLoaded } = useJsApiLoader({
+    id: "google-map-script",
+    googleMapsApiKey: process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY!,
+  });
+
+  if (!isLoaded) return <div>Loading...</div>;
+
+  return (
+    <GoogleMap
+      mapContainerStyle={containerStyle}
+      zoom={5}
+      center={currentLocation ?? trackingLocations[0] ?? defaultCenter}
+    >
+      <MarkerClustererF>
+        {(clusterer) =>
+          trackingLocations.map((loc, idx) => (
+            <MarkerF key={idx} position={loc} clusterer={clusterer} />
+          ))
+        }
+      </MarkerClustererF>
+    </GoogleMap>
+  );
+};
+
+export default MapComponent;
+
+
+
