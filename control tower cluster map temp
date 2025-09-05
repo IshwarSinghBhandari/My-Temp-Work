@@ -48,5 +48,16 @@ const MapComponent: React.FC<MapComponentProps> = ({
 
 export default MapComponent;
 
+//---------------------------------------------
+<MarkerClustererF>
+  {(clusterer) => (
+    <>
+      {trackingLocations.map((loc, idx) => (
+        <MarkerF key={idx} position={loc} clusterer={clusterer} />
+      ))}
+    </>
+  )}
+</MarkerClustererF>
+
 
 
