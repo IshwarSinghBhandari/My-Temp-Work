@@ -1,0 +1,135 @@
+"use client";
+
+import React, { useRef, useState, useEffect, useCallback } from "react";
+import {
+  GoogleMap,
+  useJsApiLoader,
+  OverlayViewF,
+} from "@react-google-maps/api";
+import { MarkerClusterer } from "@googlemaps/markerclusterer";
+import { ENV_CONSTANT } from "@/utils/constants";
+import { useSelector } from "react-redux";
+import { RootState } from "@/store";
+import { darkStyle, lightStyle } from "@/utils/color/mapThemeColor";
+
+const containerStyle = { width: "100%", height: "100%" };
+const googleMapsApiKey = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY || "";
+
+const ClusterMapComponent: React.FC<{ allLocations: any[] }> = ({ allLocations }) => {
+  const mapRef = useRef<google.maps.Map | null>(null);
+  const clustererRef = useRef<MarkerClusterer | null>(null);
+  const [activeTrip, setActiveTrip] = useState<any | null>(null);
+  const themeMode = useSelector((state: RootState) => state.theme.mode);
+
+  const { isLoaded, loadError } = useJsApiLoader({
+    googleMapsApiKey,
+    id: "google-map-script",
+  });
+
+  const [center] = useState(() => {
+    if (
+      allLocations.length > 0 &&
+      allLocations[0].vehicle?.currentLocation?.lat &&
+      allLocations[0].vehicle?.currentLocation?.lng
+    ) {
+      return {
+        lat: Number(allLocations[0].vehicle.currentLocation.lat),
+        lng: Number(allLocations[0].vehicle.currentLocation.lng),
+      };
+    }
+    return { lat: 20.5937, lng: 78.9629 }; // Default India
+  });
+
+  const onMapLoad = useCallback((map: google.maps.Map) => {
+    mapRef.current = map;
+  }, []);
+
+  const handleMarkerMouseOver = useCallback((trip: any) => {
+    setActiveTrip(trip);
+  }, []);
+
+  const handleMarkerMouseOut = useCallback(() => {
+    setActiveTrip(null);
+  }, []);
+
+  useEffect(() => {
+    if (!mapRef.current || !isLoaded) return;
+
+    // Remove old cluster if it exists
+    if (clustererRef.current) {
+      clustererRef.current.clearMarkers();
+    }
+
+    // Create MarkerClusterer with markers
+    const markers = allLocations
+      .filter(
+        (trip) =>
+          trip.vehicle?.currentLocation?.lat &&
+          trip.vehicle?.currentLocation?.lng
+      )
+      .map((trip) => {
+        const marker = new google.maps.Marker({
+          position: {
+            lat: Number(trip.vehicle.currentLocation.lat),
+            lng: Number(trip.vehicle.currentLocation.lng),
+          },
+          icon: {
+            url: ENV_CONSTANT.MAP_TRUCK_IMAGE || "",
+            scaledSize: new google.maps.Size(40, 40),
+          },
+        });
+
+        marker.addListener("mouseover", () => handleMarkerMouseOver(trip));
+        marker.addListener("mouseout", handleMarkerMouseOut);
+
+        return marker;
+      });
+
+    clustererRef.current = new MarkerClusterer({ markers, map: mapRef.current, });
+
+  }, [allLocations, handleMarkerMouseOver, handleMarkerMouseOut, isLoaded]);
+
+  if (loadError) return <div className="h-full p-4">Error loading maps</div>;
+  if (!isLoaded) return <div className="h-full p-4">Loading maps...</div>;
+
+  const mapThemeStyle = themeMode === "dark" ? darkStyle : lightStyle;
+
+  return (
+    <GoogleMap
+      mapContainerStyle={containerStyle}
+      center={center}
+      zoom={5}
+      onLoad={onMapLoad}
+      options={{
+        styles: mapThemeStyle,
+        gestureHandling: "cooperative",
+      }}
+    >
+      {activeTrip && (
+        <OverlayViewF
+          position={{
+            lat: Number(activeTrip.vehicle.currentLocation.lat),
+            lng: Number(activeTrip.vehicle.currentLocation.lng),
+          }}
+          mapPaneName="overlayMouseTarget"
+        >
+          <div
+            className="bg-white text-[14px] shadow-lg rounded-lg p-3 w-[220px] text-black border border-gray-200"
+            style={{ transform: "translate(-50%, -130%)" }}
+          >
+            <p className="font-semibold">Trip Ref: {activeTrip.tripRefId || "N/A"}</p>
+            <p>Vehicle No: {activeTrip.vehicle.regNo || "N/A"}</p>
+            <p>Type: {activeTrip.vehicle.type || "N/A"}</p>
+            <p>Address: {activeTrip.vehicle.currentLocation?.address || "N/A"}</p>
+            <p>Transporter: {activeTrip.transporter?.name || "N/A"}</p>
+            <p>
+              Driver: {activeTrip.driver?.name || "N/A"} ({activeTrip.driver?.phone || "N/A"})
+            </p>
+          </div>
+        </OverlayViewF>
+      )}
+    </GoogleMap>
+  );
+};
+
+export default ClusterMapComponent;
