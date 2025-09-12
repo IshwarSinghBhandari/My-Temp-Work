@@ -1,0 +1,152 @@
+import React, { useState } from 'react'
+import Image from "next/image";
+import DueDiligentEdge_BG from "./assets/DueDiligentEdge_BG.svg"
+
+interface Stat {
+  number: string;
+  description: string;
+}
+
+interface BannerPart1Props {
+  statsData: Stat[];
+}
+
+const BannerPart1: React.FC<BannerPart1Props> = ({ statsData }) => {
+  const [isPlaying, setIsPlaying] = useState(false);
+
+  return (
+    <section className="flex flex-col w-full items-center bg-[#FBFBFB]  ">
+
+      {/* Hero Section */}
+      <div className="bg-[#FBFBFB] relative overflow-hidden w-full px-6 md:px-12 lg:px-[105px]">
+        {/* Abstract Grid Background */}
+        <div className="absolute right-0 -top-10 w-full h-full flex justify-end items-start">
+          <Image
+            src={DueDiligentEdge_BG}
+            alt="Abstract Grid"
+            className="w-auto h-[733px] object-cover mt-auto opacity-50 md:opacity-100 scale-x-[-1]"
+          />
+        </div>
+
+        {/* Main Content Container */}
+        <div className="relative z-10 w-full mx-auto ">
+          <div className="grid lg:grid-cols-2 gap-8 lg:gap-16 items-center py-16 lg:py-24">
+            {/* Left Side - Content */}
+            <div className="space-y-6 ">
+              <div className="space-y-4">
+                <h1 className="text-3xl sm:text-4xl lg:text-[40px]  font-medium leading-[1.2] tracking-[-1.2px] text-[#353435] max-w-2xl">
+                  Automated Due Diligence & Market Research for Smarter Financial
+                  Decisions
+                </h1>
+              </div>
+
+              {/* CTA Button */}
+              <div className="pt-4">
+                <button className="flex py-3 px-4 justify-center items-center gap-2 rounded bg-[#DA3643] hover:bg-[#c12e3a] transition-colors duration-200">
+                  <span className="text-white text-center text-base md:text-lg lg:text-[18px] font-medium poppinsFont">
+                    REQUEST A DEMO
+                  </span>
+                </button>
+              </div>
+            </div>
+
+            {/* Right Side - Video Demo */}
+            <div className="relative lg:pl-16">
+              {/* Video Container */}
+              <div className="relative rounded-lg border border-gray-400/50 bg-white/0 backdrop-blur-sm overflow-hidden">
+                {isPlaying ? (
+                  // Show video
+                  <video
+                    src="/videos/demo.mp4"
+                    controls
+                    autoPlay
+                    className="w-full h-auto rounded-lg"
+                  />
+                ) : (
+                  // Show placeholder + play button
+                  <div className="relative rounded-lg overflow-hidden">
+                    <img
+                      src="https://api.builder.io/api/v1/image/assets/TEMP/fd11d1839ce0f634a4e4a958130c251eee45c104?width=981"
+                      alt="Video Background"
+                      className="w-full h-auto rounded-lg"
+                    />
+                    <div className="absolute inset-0">
+                      <img
+                        src="https://api.builder.io/api/v1/image/assets/TEMP/2128b27a8f372b010e88ddd8d79da09f2fe33d74?width=955"
+                        alt="Video Interface"
+                        className="w-full h-full object-cover rounded"
+                      />
+                    </div>
+                    <div
+                      className="absolute inset-0 rounded-lg"
+                      style={{
+                        background:
+                          "radial-gradient(54.64% 54.64% at 50% 50%, rgba(59, 59, 59, 0.00) 0%, #555 100%)",
+                      }}
+                    ></div>
+                    <div className="absolute inset-0 flex items-center justify-center">
+                      <button
+                        onClick={() => setIsPlaying(true)}
+                        className="w-18 h-18 rounded-full border border-gray-400/30 bg-white/5 backdrop-blur-sm flex items-center justify-center hover:bg-white/10 transition-colors duration-200"
+                        style={{
+                          boxShadow:
+                            "0 -1.8px 45px 0 rgba(255, 255, 255, 0.10) inset, 18px 18px 27px 0 rgba(0, 0, 0, 0.05) inset",
+                        }}
+                      >
+                        <div className="w-12 h-12 flex items-center justify-center">
+                          <svg className="w-10 h-10" viewBox="0 0 40 40" fill="none">
+                            <path
+                              fillRule="evenodd"
+                              clipRule="evenodd"
+                              d="M15.874 8.23005L32.694 18.58C32.9366 18.7292 33.1371 18.938 33.2761 19.1866C33.4151 19.4352 33.4881 19.7152 33.4881 20C33.4881 20.2849 33.4151 20.5649 33.2761 20.8135C33.1371 21.0621 32.9366 21.2709 32.694 21.42L15.874 31.77C15.6214 31.9254 15.3319 32.0106 15.0355 32.0168C14.739 32.023 14.4462 31.95 14.1874 31.8053C13.9285 31.6606 13.713 31.4494 13.563 31.1936C13.4129 30.9378 13.3339 30.6466 13.334 30.35V9.65005C13.3339 9.3535 13.4129 9.06229 13.563 8.80648C13.713 8.55068 13.9285 8.33952 14.1874 8.19481C14.4462 8.05011 14.739 7.97708 15.0355 7.98327C15.3319 7.98947 15.6214 8.07465 15.874 8.23005Z"
+                              fill="#E0E0E0"
+                            />
+                          </svg>
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Stats Section */}
+      <div className="flex flex-col justify-between md:flex-row flex-wrap  px-6 md:px-12 lg:px-[105px] items-center md:items-start gap-2 md:gap-4 lg:gap-6 self-stretch bg-[#EDF2F5]">
+        {statsData.map((stat, index) => (
+          <React.Fragment key={index}>
+            {/* Stat Container */}
+            <div
+              className={`flex flex-col items-start gap-4 w-full md:w-auto py-2 md:py-6 border-b border-gray-300 md:border-b-0 ${index === statsData.length - 1 ? "border-b-0 pb-5" : ""
+                }`}
+            >
+              {/* Number */}
+              <div className="text-[#DA3643] text-2xl md:text-3xl lg:text-[32px] font-medium leading-[150%] tracking-[-0.96px] ">
+                {stat.number}
+              </div>
+
+              {/* Divider Line (CSS) */}
+              <div className="w-12 h-[3px] bg-[#DA3643]"></div>
+
+              {/* Description */}
+              <div className="text-[#353435] text-base md:text-lg lg:text-[18px] font-normal leading-[150%] tracking-[-0.54px] w-full md:w-[213px] ">
+                {stat.description}
+              </div>
+            </div>
+
+            {/* Vertical Divider for desktop */}
+            {index < statsData.length - 1 && (
+              <div className="hidden md:block  w-[0.75px] h-[209px] bg-[#D9D9D9]"></div>
+            )}
+          </React.Fragment>
+        ))}
+      </div>
+
+    </section>
+  );
+
+}
+
+export default BannerPart1
