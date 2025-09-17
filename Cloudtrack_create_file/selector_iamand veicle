@@ -1,0 +1,126 @@
+
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import { Label } from "@/app/components/ui/label";
+import { Combobox } from "../../ui/combobox";
+import { useDebounce } from "@/hooks/useDebounce";
+import { getIAMUser } from "@/utils/services/iamAPI";
+import { ROLE_IDS, CREATE_TRIP_SEARCH_DEBOUNCE, CREATE_TRIP_SEARCH } from "@/utils/constants";
+import { useDispatch } from "react-redux";
+import { setSearchQuery } from "@/store/slices/tripSearchSlice";
+import useTripFormSelectors from "../../../../hooks/useTripFormSelectors";
+import { DropdownOption } from "@/types/trips-type";
+import { FormSelectProps } from "@/types/unions";
+
+interface IAMUserSelectProps {
+  selectedUserId?: string | null;
+  roleId: string; // DRIVER_ROLE_ID or TRANSPORTER_ROLE_ID
+  trip_search_type: FormSelectProps;
+  onSelect: (id: string) => void;
+  reset?: number;
+}
+
+const IAMUserSelect: React.FC<IAMUserSelectProps> = ({ selectedUserId, roleId, trip_search_type, onSelect, reset = 0 }) => {
+  const dispatch = useDispatch();
+
+  const {
+    driverOptions,
+    driverSearchOptions,
+    driverPagination,
+    transporterOptions,
+    transporterSearchOptions,
+    transporterPagination,
+  } = useTripFormSelectors();
+
+  const isDriver = roleId === ROLE_IDS.DRIVER;
+
+  const optionsFromStore = isDriver ? driverOptions : transporterOptions;
+  const searchOptionsFromStore = isDriver ? driverSearchOptions : transporterSearchOptions;
+  const paginationFromStore = isDriver ? driverPagination : transporterPagination;
+
+  const [searchTerm, setSearchTerm] = useState("");
+  const [pageNumber, setPageNumber] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+
+  const debouncedSearchTerm = useDebounce(searchTerm, CREATE_TRIP_SEARCH_DEBOUNCE);
+  const prevSearchRef = useRef("");
+
+  // Reset on parent reset
+  useEffect(() => {
+    setSearchTerm("");
+    setPageNumber(1);
+    prevSearchRef.current = "";
+  }, [reset]);
+
+  // Load initial data only once
+  useEffect(() => {
+    if ((optionsFromStore?.length ?? 0) === 0) {
+      getIAMUser({ roleId, pageNo: 1 }, dispatch);
+    }
+  }, []);
+
+  // Fetch data when debounced search changes
+  useEffect(() => {
+    const query = debouncedSearchTerm.trim();
+    if (query === prevSearchRef.current) return;
+
+    prevSearchRef.current = query;
+    setPageNumber(1);
+
+    getIAMUser({ roleId, searchQuery: query || "", pageNo: 1 }, dispatch);
+  }, [debouncedSearchTerm, roleId, dispatch]);
+
+  // Update hasMore when pagination changes
+  useEffect(() => {
+    const totalPages = paginationFromStore?.totalPages || 0;
+    setHasMore(pageNumber < totalPages);
+  }, [pageNumber, paginationFromStore?.totalPages]);
+
+  const handleLoadMore = () => {
+    const nextPage = pageNumber + 1;
+    const totalPages = paginationFromStore?.totalPages || 0;
+    if (nextPage > totalPages) return;
+
+    setPageNumber(nextPage);
+    getIAMUser({ roleId, searchQuery: debouncedSearchTerm || "", pageNo: nextPage }, dispatch);
+  };
+
+  const options: DropdownOption[] =
+    searchTerm.trim().length > 0 ? searchOptionsFromStore : optionsFromStore;
+
+  const stringOptions = options.map(
+    (opt) => opt.name || `${opt.firstName || ""} ${opt.lastName || ""}`.trim() || opt._id
+  );
+
+  const selectedOption = options.find((opt) => opt._id === selectedUserId);
+  const selectedLabel =
+    selectedOption?.name || `${selectedOption?.firstName || ""} ${selectedOption?.lastName || ""}`.trim() || "";
+
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="iam-user-select">{isDriver ? "Driver" : "Transporter"}</Label>
+      <Combobox
+        options={stringOptions}
+        selected={selectedLabel}
+        onSelect={(label) => {
+          const selected = options.find(
+            (opt) =>
+              opt.name === label ||
+              `${opt.firstName || ""} ${opt.lastName || ""}`.trim() === label
+          );
+          if (selected) onSelect(selected._id);
+        }}
+        onSearchChange={(value) => {
+          setSearchTerm(value);
+          dispatch(setSearchQuery({ key: trip_search_type, value }));
+        }}
+        hasMore={hasMore}
+        onLoadMore={handleLoadMore}
+        reset={reset}
+      />
+    </div>
+  );
+};
+
+export default IAMUserSelect;
