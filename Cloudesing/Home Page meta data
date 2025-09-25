@@ -1,0 +1,22 @@
+export const metadata = {
+  title: "Cloudesign | Software Development Company",
+  description:
+    "Top Software Development Company with 10+ years of excellence in Enterprise IT, App Development, IT services, and more. Grab Your FREE Consultation Now!",
+  alternates: {
+    canonical: "https://www.cloudesign.com/",
+  },
+  openGraph: {
+    images: [
+      {
+        url: "https://www.cloudesign.com/og-image.jpg", // ✅ replace with your actual image path
+        width: 1200,
+        height: 630,
+        alt: "Cloudesign - Software Development Company",
+      },
+    ],
+  },
+  twitter: {
+    card: "summary_large_image",
+    images: ["https://www.cloudesign.com/og-image.jpg"], // ✅ same image for Twitter
+  },
+};
