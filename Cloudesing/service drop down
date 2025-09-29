@@ -1,0 +1,237 @@
+import Link from "next/link";
+import React, { useRef, useState } from "react";
+import Image from "next/image";
+import { ArrowRight, ChevronRight } from "lucide-react";
+
+const ServiceMenuDesktop = ({ servicesList }) => {
+
+  const mainRef = useRef<HTMLDivElement | null>(null);
+
+  const onClickHideToggle = () => {
+    if (mainRef.current) {
+      mainRef.current.classList.add("hidden");
+      setTimeout(() => {
+        mainRef.current?.classList.remove("hidden");
+      }, 100);
+    }
+  };
+  const [activeCategory, setActiveCategory] = useState(servicesList[0]);
+
+  // Find first active sub-item
+  const firstActiveSubItem = servicesList[0].listItems.find(item => item.isActive);
+
+  // Initialize highlight with the first active sub-item
+  const [highlight, setHighlight] = useState<{ title: string; desc: string } | null>(
+    firstActiveSubItem ? { title: firstActiveSubItem.title, desc: firstActiveSubItem.title } : null
+  );
+
+  // Track selected sub-index
+  const [activeSubIndex, setActiveSubIndex] = useState(
+    firstActiveSubItem ? servicesList[0].listItems.indexOf(firstActiveSubItem) : 0
+  );
+
+
+  const contactUsImages = [
+    {
+      link: "https://www.instagram.com/cloudesign.technology/",
+      img: "/images/service_instagram.svg",
+    },
+    {
+      link: "https://www.facebook.com/cloudesign.in/",
+      img: "/images/servicefacebook.svg",
+    },
+    {
+      link: "https://www.linkedin.com/company/cloudesign/",
+      img: "/images/service_linkedin.svg",
+    },
+    {
+      link: "https://twitter.com/cloudesigntech",
+      img: "/images/service_twitter.svg",
+    },
+  ];
+
+  return (
+    <div className="group lg:py-2">
+      <Link
+        href="/services"
+        className=" h-20 lg:justify-between items-center flex"
+      >
+        <span className="group-hover:text-[#DA3643] group-hover:border-[#DA3643] group-hover:border-b-[3px] lg:justify-between items-center flex">
+          Services
+        </span>
+      </Link>
+
+      {/* Services Menu Content */}
+
+      <div
+        ref={mainRef}
+        className="invisible lg:gap-5 absolute left-0 top-[5rem] z-50 w-full bg-[url(/images/service_menu_bg.webp)] bg-[0%_40%] bg-white shadow-xl px-[105px] py-[40px] flex flex-col group-hover:!visible service-menu-section"
+        style={{ maxHeight: "calc(100vh - 6rem)", overflowY: "auto" }}
+      >
+        {/* 3-Column Section */}
+        <div className="flex w-full gap-10">
+          {/* Side Navigation */}
+          <div className="w-full rounded-lg  flex flex-col py-6 px-4 gap-3 ">
+            {servicesList.map((cat: any, i: number) => (
+              <span
+                key={i}
+                onClick={() => {
+                  setActiveCategory(cat);
+
+                  // Find first active sub-item in the new category
+                  const firstSub = cat.listItems.find(item => item.isActive);
+                  if (firstSub) {
+                    setActiveSubIndex(cat.listItems.indexOf(firstSub));
+                    setHighlight({
+                      title: firstSub.title,
+                      desc: firstSub.title,
+                    });
+                  } else {
+                    setActiveSubIndex(0);
+                    setHighlight(null);
+                  }
+                }}
+                className={`cursor-pointer font-medium flex  py-3 justify-between items-center gap-2 transition-colors  border-b border-[#D9D9D9]
+              ${activeCategory.title === cat.title ? "text-[#da3643]" : "text-[#515151] hover:text-[#da3643]"}
+            `}
+              >
+                {cat.title}
+                {activeCategory.title === cat.title &&
+                  <ChevronRight size={20} color="#da3643" className="ml-2" />
+                }
+              </span>
+            ))}
+          </div>
+
+          {/* Divider */}
+          <div className="w-px bg-[#e3e3e3]" />
+
+          {/* Sub Navigation */}
+          <div className="w-full flex flex-col gap-3 pt-2">
+            {activeCategory.listItems.map((item, i) =>
+              item.isActive ? (
+                <span
+                  key={i}
+                  className={`cursor-pointer transition-colors flex  items-center py-3 gap-2.5 ${activeSubIndex === i
+                    ? "text-[#da3643] font-semibold"
+                    : "text-[#515151] hover:text-[#da3643]"
+                    }`}
+                  onClick={() => {
+                    setActiveSubIndex(i);
+                    setHighlight({
+                      title: item.title,
+                      desc: item.title,
+                    });
+                  }}
+                >
+                  {item.title}
+                </span>
+              ) : null
+            )}
+          </div>
+
+
+          {/* Highlight Card */}
+          <div className="w-full  flex flex-col justify-between pb-5">
+            <div className="bg-[#f5f7fa] h-full rounded-xl shadow-md p-6 w-[400px] shrink-0 flex flex-col justify-between">
+              {/* Highlight Content */}
+              <div>
+                <span className="text-lg font-semibold text-[#515151]">Page Highlight</span>
+                <div className="h-1 w-12 bg-[#da3643] rounded mt-1 mb-3"></div>
+              </div>
+
+              {/* White Box */}
+              <div className="bg-white flex justify-start align-middle p-4 rounded-lg mb-6 h-[14rem]">
+                {highlight ? (
+                  <span className="text-lg font-medium text-center  text-[#353435]">
+                    {highlight.title} <br />
+                    <span className="text-[#da3643]">{highlight.desc} </span>
+                  </span>
+                ) : (
+                  <span className="text-lg font-medium text-[#353435]">Select a service to see highlight</span>
+                )}
+              </div>
+
+              {/* Button */}
+              <div className="flex items-center gap-2 text-[#da3643] font-semibold cursor-pointer">
+                <Link href={activeCategory.listItems[0].link || "#"}>Explore Now</Link>
+                <ArrowRight size={24} color="#da3643" />
+              </div>
+            </div>
+
+            {/* Social Section */}
+            <div className="flex items-center gap-5 h-10 mt-4">
+              <p className="text-[#6C6C6C] text-sm">Follow us on</p>
+              <div className="flex items-center gap-3">
+                {contactUsImages.map((El, i) => (
+                  <Link
+                    key={i}
+                    href={El.link}
+                    target="_blank"
+                    rel="noopener noreferrer nofollow"
+                    className="cursor-pointer"
+                  >
+                    <Image
+                      src={El.img}
+                      alt="social-icon"
+                      width={22}
+                      height={22}
+                      loading="lazy"
+                      fetchPriority="low"
+                    />
+                  </Link>
+                ))}
+              </div>
+            </div>
+          </div>
+
+        </div>
+
+        {/* Bottom Section */}
+        {/* <div className="border-t border-[#E3E3E3] pt-5 flex justify-between items-center">
+          <div className="flex items-center gap-5">
+            <p className="text-[#6C6C6C] text-sm">Follow</p>
+            <div className="flex items-center gap-3">
+              {contactUsImages.map((El, i) => (
+                <Link
+                  key={i}
+                  href={El.link}
+                  target="_blank"
+                  rel="noopener noreferrer nofollow"
+                  className="cursor-pointer"
+                >
+                  <Image
+                    src={El.img}
+                    alt="social-icon"
+                    width={22}
+                    height={22}
+                    loading="lazy"
+                    fetchPriority="low"
+                  />
+                </Link>
+              ))}
+            </div>
+          </div>
+          <Link
+            href="/services/"
+            onClick={onClickHideToggle}
+            className="flex items-center gap-2 text-[#585858] hover:text-[#282828] text-sm"
+          >
+            Explore All Services
+            <Image
+              src="/images/service-arrow-right.svg"
+              alt="arrow-icon"
+              width={22}
+              height={22}
+              loading="lazy"
+              fetchPriority="low"
+            />
+          </Link>
+        </div> */}
+      </div>
+
+    </div>
+  );
+};
+
+export default ServiceMenuDesktop;
