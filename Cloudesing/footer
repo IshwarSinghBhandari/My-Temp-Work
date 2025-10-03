@@ -1,0 +1,382 @@
+import React from "react";
+import Logo from "../../../public/images/Cloudesign-Logo.svg";
+import Image from "next/image";
+import CloudtrackImg from "./assets/cloud-track.svg";
+// import Rpants from "./assets/rpa-ants.svg";
+import Spinclap from "./assets/spinclab.svg";
+import Perhourly from "./assets/per-hourly.svg";
+import Insta from "./assets/Insta";
+import Facebook from "./assets/Facebook";
+import Linkedin from "./assets/Linkedin";
+import Tweeter from "./assets/Tweeter";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { usePathname } from "next/navigation";
+import { Phone } from "lucide-react";
+
+export default function FooterComponent() {
+  const WhatwedolistItems = [
+    {
+      isActive: true,
+      name: "Web Development",
+      link: "/web-development-service",
+    },
+    { isActive: true, name: "DevOps", link: "/cloud-devops-services" },
+    {
+      isActive: true,
+      name: "Off-Shore Development",
+      link: "/offshore-software-development",
+    },
+    {
+      isActive: true,
+      name: "Business Intelligence",
+      link: "/business-intelligence-services",
+    },
+    {
+      isActive: true,
+      name: "Product Development",
+      link: "/software-product-development",
+    },
+    {
+      isActive: true,
+      name: "IoT Platform Engineering",
+      link: "/iot-development-company",
+    },
+    {
+      isActive: true,
+      name: "Staff Augmentation",
+      link: "/it-staff-augmentation-services",
+    },
+    {
+      isActive: true,
+      name: "RPA - UiPath",
+      link: "/robotic-process-automation",
+    },
+    {
+      isActive: true,
+      name: "App Modernization",
+      link: "/legacy-application-modernization",
+    },
+    {
+      isActive: true,
+      name: "Mobile Development",
+      link: "/native-and-hybrid-app-development",
+    },
+    {
+      isActive: true,
+      name: "Microsoft Consulting",
+      link: "/microsoft-consulting-services",
+    },
+    {
+      isActive: true,
+      name: "Quality Engineering",
+      link: "/software-testing-services",
+    },
+    { isActive: true, name: "UI/UX", link: "/ui-ux-design-services" },
+    {
+      isActive: true,
+      name: "AI & ML",
+      link: "/ai-development-services",
+    },
+    {
+      isActive: true,
+      name: "Data Warehousing",
+      link: "/data-warehousing-services",
+    },
+    {
+      isActive: true,
+      name: "Low Code - Powerapps",
+      link: "/power-apps-development",
+    },
+    {
+      isActive: true,
+      name: "Case Studies",
+      link: "/case-studies/",
+    },
+    {
+      isActive: true,
+      name: "Explore All",
+      link: "/services",
+    },
+  ];
+
+  const contactUsImages = [
+    { link: "https://www.instagram.com/cloudesign.technology/", img: Insta, alabel: "Instagram link" },
+    { link: "https://www.facebook.com/cloudesign.in/", img: Facebook, alabel: "Facebook link" },
+    { link: "https://www.linkedin.com/company/cloudesign/", img: Linkedin, alabel: "Linkedin link" },
+    { link: "https://twitter.com/cloudesigntech", img: Tweeter, alabel: "Twitter link" },
+  ];
+  const router = useRouter();
+  const pathname = usePathname();
+  const hideAddress = pathname.replace(/\/$/, "") === "/contact-us";
+  return (
+    <>
+      <div className="px-[105px] 4xl:max-w-[1600px] 4xl:mx-auto pt-[50px] text-[#353435] max-lg:px-5 h-full bg-[#F2F2F2]">
+        <div className="container mx-auto ">
+          <div className="justify-between max-md:flex max-md:flex-col max-md:items-start max-md:gap-[34px] items-center border-b-2 border-b-[#C9C9C9] py-5 mb-8 flex">
+            <Link href="/">
+              <Image src={Logo} alt="logo" className="max-md:w-40" />
+            </Link>
+            <div className="flex items-center gap-[25px]">
+              <p className="text-[#6C6C6C] text-[14px] font-normal">Follow</p>
+              <div className="flex items-center gap-3">
+                {contactUsImages.map((El: any, i) => {
+                  const Img = El.img;
+                  return (
+                    <Link
+                      key={i}
+                      href={El.link}
+                      aria-label={El.alabel}
+                      target="_blank"
+                      rel="noopener noreferrer nofollow"
+                      className="w-full cursor-pointer"
+                    >
+                      <Img />
+                    </Link>
+                  );
+                })}
+              </div>
+            </div>
+          </div>
+          <div className={`border-b-2 border-b-[#D9D9D9] pb-8 grid ${hideAddress ? "grid-cols-4" : "[grid-template-columns:30%_20%_20%_20%]"} lg:gap-[34px] max-md:grid-cols-1`}>
+            <div className="flex flex-col  md:gap-[34px]">
+              {!hideAddress && (
+                <>
+                  <div>
+
+                    <h4 className="text-[18px] font-bold leading-[25px]">
+                      Bangalore:
+                    </h4>
+                    <p className="text-[14px] mt-3 font-normal leading-normal">
+                      BDA Complex, AISHWARYA, #70, 7th Cross, 16 B Main, 4th B Block, near Koramangala, Bengaluru, Karnataka 560034
+                    </p>
+
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m14!1m8!1m3!1d1944.311800922119!2d77.62291627058957!3d12.931896440574938!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3bae15ca882f5639%3A0x65031c59dd1e9725!2sCloudesign!5e0!3m2!1sen!2sin!4v1759206142428!5m2!1sen!2sin" loading="lazy" height={120} className="mt-2  border-solid border-2 border-[#D9D9D9] shadow-sm" style={{ width: "90%" }}></iframe>
+
+                  </div>
+                  <div className="mt-3 sm:mt-0">
+                    <h4 className="text-[18px] font-bold leading-[25px]">
+                      Mumbai:
+                    </h4>
+                    <p className="text-[14px] mt-3 font-normal leading-normal">
+
+                      Ajmera Sikova, 606, Ghatkopar West, Mumbai, Maharashtra 400086
+                    </p>
+                    <iframe src="https://www.google.com/maps/embed?pb=!1m18!1m12!1m3!1d3770.3280522787463!2d72.91519484077993!3d19.093259148033138!2m3!1f0!2f0!3f0!3m2!1i1024!2i768!4f13.1!3m3!1m2!1s0x3be7c77733eccf69%3A0x741bf6a29c4a351a!2sAjmera%20Sikova!5e0!3m2!1sen!2sin!4v1759208843947!5m2!1sen!2sin" loading="lazy" height={120} className="mt-2  border-solid border-2 border-[#D9D9D9] shadow-sm" style={{ width: "90%" }}></iframe>
+                  </div>
+                </>
+              )}
+              <div className="flex flex-col gap-[34px]">
+
+                <div className="mt-3 sm:mt-0">
+                  <h4 className="text-[18px] font-bold leading-[25px]">
+                    Phone:
+                  </h4>
+                  <p className={`text-[14px] ${hideAddress ? "block" : "flex"} gap-4  mt-3 font-normal leading-normal`}>
+                    <a href="tel:+919980668622" className="hover:text-[#DA3643] flex gap-1">
+                      <Phone size={15} />  +91 9980668622
+                    </a><br />
+                    <a href="tel:+919980425433" className="hover:text-[#DA3643] flex gap-1">
+                      <Phone size={15} /> +91 9980425433
+                    </a>
+                  </p>
+
+                </div>
+                {hideAddress && (
+                  <div className="mb-8">
+                    <h4 className="text-[18px] font-bold leading-[25px]">
+                      Get in Touch
+                    </h4>
+                    <div className="mt-2 flex flex-col">
+                      <Link
+                        href={"/contact-us/"}
+                        className="cursor-pointer text-[14px] leading-[25px] py-[2px] hover:text-[#DA3643]"
+                      >
+                        Contact Us
+                      </Link>
+                      <a
+                        className="cursor-pointer text-[14px] leading-[25px] py-[2px] hover:text-[#DA3643]"
+                        href="mailto:sales@cloudesign.com"
+                      >
+                        sales@cloudesign.com
+                      </a>
+                    </div>
+                  </div>
+                )}
+
+              </div>
+            </div>
+            <div className="col-span-3 flex flex-col gap-0 sm:gap-[34px] max-md:mt-8">
+              <div className="lg:grid grid-cols-3 lg:gap-[105px] max-md:grid max-md:grid-cols-2 ">
+                <div>
+                  <h4 className="text-[18px] font-bold leading-[25px]">
+                    Who we are
+                  </h4>
+                  <div className="mt-3 flex flex-col leading-[25px]">
+                    <Link
+                      href={"/about-us"}
+                      className="cursor-pointer text-[14px] hover:text-[#DA3643]"
+                    >
+                      About Us
+                    </Link>
+                    <Link
+                      href={"/blogs"}
+                      className="cursor-pointer text-[14px] hover:text-[#DA3643]"
+                    >
+                      Blogs
+                    </Link>
+                    <Link
+                      href={"/careers"}
+                      className="cursor-pointer text-[14px] hover:text-[#DA3643]"
+                    >
+                      Careers
+                    </Link>
+                  </div>
+                </div>
+                <div>
+                  <h4 className="text-[18px] font-bold leading-[25px]">
+                    Technologies
+                  </h4>
+                  <div className="mt-3 flex flex-col leading-[25px]">
+                    <Link
+                      href={"/technology/react-js/"}
+                      className="cursor-pointer text-[14px] hover:text-[#DA3643]"
+                    >
+                      React Js
+                    </Link>
+                    <Link
+                      href={"/technology/angularjs/"}
+                      className="cursor-pointer text-[14px] hover:text-[#DA3643]"
+                    >
+                      Angular Js
+                    </Link>
+                    <Link
+                      href={"/technology/java/"}
+                      className="cursor-pointer text-[14px] hover:text-[#DA3643]"
+                    >
+                      Java
+                    </Link>
+                    <Link
+                      href={"/technology/"}
+                      className="cursor-pointer text-[14px] hover:text-[#DA3643]"
+                    >
+                      And More...
+                    </Link>
+                  </div>
+                </div>
+
+                <div className="flex gap-10 sm:block ">
+                  {!hideAddress && (
+                    <div className="mb-8">
+                      <h4 className="text-[18px] font-bold leading-[25px]">
+                        Get in Touch
+                      </h4>
+                      <div className="mt-2 flex flex-col">
+                        <Link
+                          href={"/contact-us/"}
+                          className="cursor-pointer text-[14px] leading-[25px] py-[2px] hover:text-[#DA3643]"
+                        >
+                          Contact Us
+                        </Link>
+                        <a
+                          className="cursor-pointer text-[14px] leading-[25px] py-[2px] hover:text-[#DA3643]"
+                          href="mailto:sales@cloudesign.com"
+                        >
+                          sales@cloudesign.com
+                        </a>
+                      </div>
+                    </div>
+                  )}
+
+                  <div className="mt-2 sm:mt-0">
+                    <h4 className="text-[18px] font-bold leading-[25px]">
+                      Careers:
+                    </h4>
+                    <Link
+                      href="mailto:hr@cloudesign.com"
+                      className="text-[14px] mt-3 font-normal leading-normal hover:text-[#DA3643]"
+                    >
+                      hr@cloudesign.com
+                    </Link>
+                  </div>
+                </div>
+
+              </div>
+              <div className="grid grid-cols-3 max-md:flex max-md:flex-col lg:gap-[105px]">
+                <div className="col-span-2">
+                  <h4 className="text-[18px] font-bold leading-[25px]">
+                    What we do
+                  </h4>
+                  <div className="grid grid-cols-2 leading-[25px] text-[14px] font-normal max-md:grid-cols-2 max-md:gap-[10px] mt-3 lg:gap-x-[105px]">
+                    {WhatwedolistItems.map((el, i) => (
+                      <Link
+                        className="cursor-pointer hover:text-[#DA3643]"
+                        key={i}
+                        href={el.link}
+                      >
+                        {el.name}
+                      </Link>
+                    ))}
+                  </div>
+                </div>
+                <div className="font-bold text-lg max-md:mt-8">
+                  <div className="pb-2">Affiliate Brands</div>
+                  <div className="sm:block flex gap-1">
+                    <Link
+                      className="cursor-pointer"
+                      target="_blank"
+                      href="https://cloudtrack.in/"
+                      rel="noopener noreferrer nofollow"
+                    >
+                      <Image
+                        className="mb-0 sm:mb-5 "
+                        src={CloudtrackImg}
+                        alt="company"
+                      />
+                    </Link>
+                    <Link
+                      className="cursor-pointer"
+                      target="_blank"
+                      href="https://www.perhourly.com/"
+                      rel="noopener noreferrer nofollow"
+                    >
+                      <Image className="mb-0 sm:mb-5 " src={Perhourly} alt="company" />
+                    </Link>
+                    <Link
+                      className="cursor-pointer "
+                      target="_blank"
+                      href="https://www.spinclabs.tech"
+                    // rel="noopener noreferrer nofollow"
+                    >
+                      <Image className="mt-2 sm:mt-0 mb-0 sm:mb-5 ml-[-7px]" src={Spinclap} alt="company" />
+                    </Link>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div >
+      <div className="flex flex-wrap max-md:gap-3 justify-between bg-[#D9D9D9] lg:px-[105px] lg:py-[18px] max-md:px-5 max-md:py-8 4xl:max-w-[1600px] mx-auto">
+        <div className="col-span-3 text-[#585858] text-[12px] font-normal max-md:text-xs">
+          © Cloudesign Technology Service Pvt Ltd. All Rights Reserved.
+        </div>
+        <div className="flex max-md:text-sm max-md:mb-3 max-md:justify-start justify-between items-center gap-[8px] max-md:w-full">
+          <Link
+            href="/terms-of-use"
+            className="cursor-pointer text-[#585858] text-[12px] font-normal hover:text-[#DA3643]"
+          >
+            Terms of Use
+          </Link>
+          <div className="w-[4px] h-[4px] bg-[#DA3643]"></div>
+          <Link
+            href="/privacy-policy"
+            className="cursor-pointer text-[#585858] text-[12px] font-normal hover:text-[#DA3643]"
+          >
+            Privacy Policy
+          </Link>
+        </div>
+      </div>
+    </>
+  );
+}
