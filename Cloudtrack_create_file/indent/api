@@ -1,0 +1,56 @@
+"use client";
+
+import { AppDispatch } from "@/store";
+import { FilterValues } from "@/types/table";
+import { IndentCol } from "@/types/indent-type";
+import axiosInstance from "../axiosInstance";
+import { toast } from "sonner";
+import { ApiRoute } from "../routes";
+import { MESSAGES } from "../constants";
+import {
+  setLoading,
+  setIndentData,
+  setError,
+} from "@/store/slices/indentSlice";
+
+import MockData from "@/mock/indent.json";
+
+export async function getIndentsData(
+  pageNo: number,
+  limit: number,
+  sort: string,
+  dispatch: AppDispatch,
+  filters?: FilterValues
+): Promise<void> {
+  try {
+    dispatch(setLoading());
+
+    // Build query params
+    const params = new URLSearchParams();
+    params.append("pageNo", String(pageNo));
+    params.append("limit", String(limit));
+    params.append("sort", sort);
+
+    if (filters?.searchQuery) params.append("searchQuery", filters.searchQuery);
+    if (filters?.startDate) params.append("startDate", filters.startDate);
+    if (filters?.endDate) params.append("endDate", filters.endDate);
+
+    // API call
+    // const response = await axiosInstance.get<{
+    //   success: boolean;
+    //   data: IndentCol[];
+    // }>(`${ApiRoute.indent}?${params.toString()}`);
+    const response = MockData;
+
+    if (response.status === 200 && response.data?.success) {
+      dispatch(setIndentData(response.data));
+    } else {
+      dispatch(setError(MESSAGES.ERROR.FAILED_DATA_FETCH));
+    }
+  } catch (error) {
+    dispatch(setIndentData([])); // fallback empty
+    dispatch(setError(MESSAGES.ERROR.FAILED_DATA_FETCH));
+    toast.error(MESSAGES.ERROR.FAILED_DATA_FETCH);
+    console.error(error);
+  }
+}
