@@ -1,0 +1,75 @@
+"use client";
+
+import React, { useState } from "react";
+import TruckModel from "@/app/components/optimizer/3dTruckModel";
+import RoutesMap from "@/app/components/optimizer/Map";
+import ViewToggleSwitch from "@/app/components/ui/viewToggleSwitch";
+import { RootState } from "@/store";
+import { useSelector } from "react-redux";
+
+function Page() {
+  const [show3DView, setShow3DView] = useState(true);
+  const [visibleArray, setVisibleArray] = useState([true]);
+
+  const optimizerData = useSelector((state: RootState) => state.optimizer.data);
+
+  const hasPosition =
+    optimizerData?.data?.trucks?.some((truck) =>
+      truck.boxes?.some((box) => box.position != null)
+    ) ?? false;
+
+  const hasPath =
+    optimizerData?.data?.trucks?.some(
+      (truck) => Array.isArray(truck.path) && truck.path.length > 0
+    ) ?? false;
+
+  const optimizeRoute = hasPath;
+  const optimizeLoad = hasPosition;
+
+
+  const toggleView = () => setShow3DView((prev) => !prev);
+
+  const renderContent = () => {
+    if (optimizeRoute && optimizeLoad) {
+      return show3DView ? (
+        <TruckModel visibleArray={visibleArray} setvisibleArray={setVisibleArray} />
+      ) : (
+        <RoutesMap visibleArray={visibleArray} setvisibleArray={setVisibleArray} />
+      );
+    }
+
+    if (optimizeRoute) {
+      return <RoutesMap visibleArray={visibleArray} setvisibleArray={setVisibleArray} />;
+    }
+
+    if (optimizeLoad) {
+      return <TruckModel visibleArray={visibleArray} setvisibleArray={setVisibleArray} />;
+    }
+
+    return (
+      <div className="w-full h-full flex items-center justify-center">
+        <p className="text-gray-500 text-lg font-medium">No data available</p>
+      </div>
+    );
+  };
+
+  return (
+    <div className="relative w-full h-full">
+      {/* Show switch only if both are true */}
+      {optimizeRoute && optimizeLoad && (
+        <div className={`absolute top-2.5 ${show3DView ? "right-4" : "right-14"} z-50`}>
+          <ViewToggleSwitch
+            is3DView={show3DView}
+            onToggle={toggleView}
+            label3D="3D View"
+            labelMap="Map"
+          />
+        </div>
+      )}
+
+      <div className="w-full h-full">{renderContent()}</div>
+    </div>
+  );
+}
+
+export default Page;
