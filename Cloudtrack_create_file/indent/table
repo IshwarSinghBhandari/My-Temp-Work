@@ -1,0 +1,135 @@
+"use client";
+
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { PlusIcon } from "lucide-react";
+import DataTable from "../../common/table/dataTable";
+import { indentColumns } from "./IndentColumn";
+import AllFilter from "../../common/table/allFilter";
+import { LIMIT_SESSION_STORAGE_ROW_PER_PAGE, MESSAGES } from "@/utils/constants";
+import { FilterValues } from "@/types/table";
+import { SortingState } from "@tanstack/react-table";
+import { toggleSort } from "@/utils/common/tableDataAscDescSort";
+import { RootState } from "@/store";
+import { getIndentsData } from "@/utils/services/indentAPI";
+import { setError } from "@/store/slices/indentSlice";
+import type { IndentCol } from "@/types/indent-type";
+import { CreateIndent } from "./CreateIndent";
+
+export default function IndentTable() {
+  const dispatch = useDispatch();
+  const { data: indentData } = useSelector((state: RootState) => state.indent);
+
+  const [pageNo, setPageNo] = useState(indentData?.pagination?.pageNo || 1);
+  const [totalItems, setTotalItems] = useState(1);
+  const [limit, setLimit] = useState(indentData?.pagination?.limit || 10);
+  const [sorting, setSorting] = useState<SortingState>([]);
+  const [currentFilters, setCurrentFilters] = useState<FilterValues>({ searchQuery: "" });
+  const [isFilterMode, setIsFilterMode] = useState(false);
+  const [isDialogOpen, setIsDialogOpen] = useState(false);
+  const [isAllFilter, setIsAllFilter] = useState(false);
+
+  const getSortParam = (sorting: SortingState) => {
+    if (sorting.length === 0) return "desc";
+    return sorting[0].desc ? "asc" : "desc";
+  };
+
+  const fetchIndents = useCallback(async () => {
+    try {
+      const sortParam = getSortParam(sorting);
+
+      if (isFilterMode) {
+        await getIndentsData(pageNo, limit, sortParam, dispatch, currentFilters);
+      } else {
+        await getIndentsData(pageNo, limit, sortParam, dispatch);
+      }
+    } catch (error) {
+      dispatch(setError(MESSAGES.ERROR.FAILED_DATA_FETCH));
+      console.error(error);
+    }
+  }, [dispatch, isFilterMode, currentFilters, pageNo, limit, sorting]);
+
+  useEffect(() => {
+    const pagination = indentData?.pagination;
+    const isSamePage = pagination?.pageNo === pageNo;
+    const isSameLimit = pagination?.limit === limit;
+
+    const navEntry = performance.getEntriesByType("navigation")[0] as PerformanceNavigationTiming;
+    const isReload = navEntry?.type === "reload";
+
+    const shouldFetch = isFilterMode || !isSamePage || !isSameLimit || isReload;
+
+    if (shouldFetch) {
+      fetchIndents();
+    }
+  }, [
+    pageNo,
+    limit,
+    sorting,
+    isFilterMode,
+    currentFilters,
+    indentData?.pagination?.pageNo,
+    indentData?.pagination?.limit,
+    fetchIndents,
+  ]);
+
+  const handleSortChange = (newSorting: SortingState) => {
+    toggleSort(newSorting, sorting, setSorting);
+  };
+
+  const indents: IndentCol[] = useMemo(() => {
+    const { data: list = [], pagination } = indentData || {};
+
+    if (pagination) {
+      setTotalItems(pagination.totalItems || 1);
+    }
+
+    return list;
+  }, [indentData]);
+
+  const handleFiltersApply = useCallback((newFilters: FilterValues) => {
+    setIsFilterMode(true);
+    setCurrentFilters(newFilters);
+    setPageNo(1);
+  }, []);
+
+  const CreateButtonNameIcon = (
+    <>
+      <PlusIcon className="h-4 w-4" />
+      <span>Create Indent</span>
+    </>
+  );
+
+  return (
+    <div className="w-full p-4 pt-0">
+      <DataTable<IndentCol, unknown>
+        columns={indentColumns}
+        data={indents}
+        pageNo={pageNo}
+        setPageNo={setPageNo}
+        totalItems={totalItems}
+        limit={limit}
+        setLimit={setLimit}
+        onFiltersApply={handleFiltersApply}
+        initialFilters={currentFilters}
+        createNewButton={CreateButtonNameIcon}
+        isDateRangePickerEnabled={true}
+        onCreateNew={() => setIsDialogOpen(true)}
+        onAllFilter={() => setIsAllFilter(true)}
+        onSortChange={handleSortChange}
+        sorting={sorting}
+        rowsPerPageStorageKey={LIMIT_SESSION_STORAGE_ROW_PER_PAGE.INDENT}
+      />
+
+      <CreateIndent
+        isOpen={isDialogOpen}
+        onClose={() => setIsDialogOpen(false)}
+      />
+
+      <AllFilter
+        isOpen={isAllFilter}
+        onClose={() => setIsAllFilter(false)}
+      />
+    </div>
+  );
+}
