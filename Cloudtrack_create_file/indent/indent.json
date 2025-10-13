@@ -1,0 +1,84 @@
+{
+  "status": 200,
+  "data": {
+    "success": true,
+    "data": [
+      {
+        "indentId": "IND-1001",
+        "indent": "IND-1001",
+        "orderCount": 4,
+        "sourceLocation": "Mumbai",
+        "destinationLocation": "Pune",
+        "freightType": "Primary",
+        "totalWeight": 1200,
+        "status": "Indent Created"
+      },
+      {
+        "indentId": "IND-1002",
+        "indent": "IND-1002",
+        "orderCount": 2,
+        "sourceLocation": "Delhi",
+        "destinationLocation": "Jaipur",
+        "freightType": "Secondary",
+        "totalWeight": 600,
+        "status": "Indent Created"
+      },
+      {
+        "indentId": "IND-1003",
+        "indent": "IND-1003",
+        "orderCount": 5,
+        "sourceLocation": "Bangalore",
+        "destinationLocation": "Hyderabad",
+        "freightType": "Primary",
+        "totalWeight": 1500,
+        "status": "Delivered"
+      },
+      {
+        "indentId": "IND-1004",
+        "indent": "IND-1004",
+        "orderCount": 3,
+        "sourceLocation": "Chennai",
+        "destinationLocation": "Kochi",
+        "freightType": "Secondary",
+        "totalWeight": 800,
+        "status": "Indent Created"
+      },
+      {
+        "indentId": "IND-1005",
+        "indent": "IND-1005",
+        "orderCount": 6,
+        "sourceLocation": "Ahmedabad",
+        "destinationLocation": "Surat",
+        "freightType": "Primary",
+        "totalWeight": 2000,
+        "status": "Indent Created"
+      },
+      {
+        "indentId": "IND-1006",
+        "indent": "IND-1006",
+        "orderCount": 1,
+        "sourceLocation": "Nagpur",
+        "destinationLocation": "Indore",
+        "freightType": "Secondary",
+        "totalWeight": 450,
+        "status": "Delivered"
+      },
+      {
+        "indentId": "IND-1007",
+        "indent": "IND-1007",
+        "orderCount": 7,
+        "sourceLocation": "Lucknow",
+        "destinationLocation": "Kanpur",
+        "freightType": "Primary",
+        "totalWeight": 2500,
+        "status": "Indent Created"
+      }
+    ],
+    "pagination": {
+      "pageNo": 1,
+      "limit": 10,
+      "totalItems": 7,
+      "totalPages": 1
+    }
+  }
+}
