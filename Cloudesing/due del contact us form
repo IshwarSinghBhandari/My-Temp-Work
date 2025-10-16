@@ -1,0 +1,242 @@
+"use client";
+import "react-phone-input-2/lib/style.css";
+import { FormEvent, useState, useEffect } from "react";
+import React from "react";
+import { useRouter } from "next/navigation";
+import { validateEmail } from "@/app/(lib)/types";
+import PhoneInput, { CountryData } from "react-phone-input-2";
+import dynamic from "next/dynamic";
+import type { ReCAPTCHAProps } from "react-google-recaptcha";
+
+// Dynamically import ReCAPTCHA for Next.js SSR
+const ReCAPTCHA = dynamic<ReCAPTCHAProps>(
+  () => import("react-google-recaptcha"),
+  { ssr: false }
+);
+
+const ContactForm = () => {
+  const router = useRouter();
+  const [name, setName] = useState("");
+  const [email, setEmail] = useState("");
+  const [phone, setPhone] = useState("");
+  const [company, setCompany] = useState("");
+  const [designation, setDesignation] = useState("");
+  const [textarea, setTextArea] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [isFormValid, setIsFormValid] = useState(false);
+  const [emailError, setEmailError] = useState("");
+  const [serverError, setServerError] = useState("");
+  const [errorMessage, setErrorMessage] = useState("");
+  const [recaptchaValue, setRecaptchaValue] = useState("");
+
+  // Validate form fields + ReCAPTCHA
+  useEffect(() => {
+    const isValid =
+      name.trim() !== "" &&
+      designation.trim() !== "" &&
+      validateEmail(email.trim()) &&
+      company.trim() !== "" &&
+      textarea.trim() !== "" &&
+      !!recaptchaValue;
+
+    setIsFormValid(isValid);
+    setErrorMessage(isValid ? "" : "Please fill out all fields.");
+  }, [name, designation, email, phone, company, textarea, recaptchaValue]);
+
+  const handleEmailChange = (e: any) => {
+    const value = e.target.value;
+    setEmail(value);
+    setEmailError(validateEmail(value) ? "" : "Invalid email format.");
+  };
+
+  const handlePhoneChange = (value: string, country: CountryData) => {
+    const sanitizedValue = value.replace(/\D/g, "");
+    const countryCode = country.dialCode;
+    const phoneNumber = sanitizedValue.startsWith(countryCode)
+      ? sanitizedValue.substring(countryCode.length)
+      : sanitizedValue;
+
+    setPhone(`${countryCode} ${phoneNumber}`);
+  };
+
+  // Handle ReCAPTCHA
+  const handleRecaptchaChange = (value: string | null) => {
+    setRecaptchaValue(value || "");
+  };
+
+  const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+
+    if (!recaptchaValue) {
+      setErrorMessage("Please complete the ReCAPTCHA.");
+      return;
+    }
+
+    if (isLoading || !isFormValid) return;
+
+    try {
+      setIsLoading(true);
+      const api = process.env.NEXT_PUBLIC_API_URL;
+      const server = process.env.NEXT_PUBLIC_SERVER;
+
+      const response = await fetch(api, {
+        method: "POST",
+        headers: {
+          Accept: "application/json",
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          name,
+          email,
+          company,
+          phone: phone || "N/A",
+          message: textarea,
+          type: "HomePage",
+          recaptchaToken: recaptchaValue,
+          server,
+        }),
+      });
+
+      const responseData = await response.json();
+
+      if (response.ok) {
+        router.push("/thankyou");
+      } else {
+        throw new Error(
+          `API error: ${response.status} - ${responseData.message || "Unknown error"}`
+        );
+      }
+    } catch (error) {
+      console.error("Error submitting form:", error);
+      setServerError("An unexpected error has occurred!");
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  return (
+    <div className="w-full min-h-screen bg-[url('/image/common/contact-form-bg.webp')] bg-cover bg-no-repeat flex justify-center items-center px-6 py-12">
+      <div className="w-full max-w-3xl bg-white rounded-lg shadow-md p-8">
+        <div className="text-center mb-8">
+          <h3 className="text-[28px] font-semibold">
+            Trusted by Leading Organizations Worldwide
+          </h3>
+          <hr className="w-[60px] mt-2 mx-auto border-2 border-[#DA3643]" />
+        </div>
+
+        <form onSubmit={handleSubmit} className="flex flex-col gap-5 my-6">
+          {/* Name */}
+          <div>
+            <label className="text-[14px] font-semibold">Full Name <span className="text-[#DA3643]">*</span></label>
+            <input
+              type="text"
+              value={name}
+              className="w-full px-4 py-3 border border-[#D9D9D9] rounded-md"
+              placeholder="Name"
+              required
+              onChange={(e) => setName(e.target.value)}
+            />
+          </div>
+
+          {/* Designation & Company */}
+          <div className="grid md:grid-cols-2 gap-5">
+            <div>
+              <label className="text-[14px] font-semibold">Designation <span className="text-[#DA3643]">*</span></label>
+              <input
+                type="text"
+                value={designation}
+                className="w-full px-4 py-3 border border-[#D9D9D9] rounded-md"
+                placeholder="Designation"
+                required
+                onChange={(e) => setDesignation(e.target.value)}
+              />
+            </div>
+            <div>
+              <label className="text-[14px] font-semibold">Company <span className="text-[#DA3643]">*</span></label>
+              <input
+                type="text"
+                value={company}
+                className="w-full px-4 py-3 border border-[#D9D9D9] rounded-md"
+                placeholder="Company"
+                required
+                onChange={(e) => setCompany(e.target.value)}
+              />
+            </div>
+          </div>
+
+          {/* Phone & Email */}
+          <div className="grid md:grid-cols-2 gap-5">
+            <div>
+              <label className="text-[14px] font-semibold">Phone <span className="text-[#DA3643]">*</span></label>
+              <PhoneInput
+                country={"in"}
+                inputStyle={{
+                  width: "100%",
+                  padding: "0px 0px 0px 60px",
+                  border: "1px solid #D9D9D9",
+                  borderRadius: "4px",
+                  height: "44px",
+                  fontSize: "14px",
+                }}
+                value={phone}
+                onChange={handlePhoneChange}
+                placeholder="Phone"
+                inputProps={{ id: "phone", required: true }}
+              />
+            </div>
+            <div>
+              <label className="text-[14px] font-semibold">Email <span className="text-[#DA3643]">*</span></label>
+              <input
+                type="text"
+                value={email}
+                className="w-full px-4 py-3 border border-[#D9D9D9] rounded-md"
+                placeholder="Email"
+                required
+                onChange={handleEmailChange}
+              />
+              {emailError && <p className="text-red-500 text-xs mt-1">{emailError}</p>}
+            </div>
+          </div>
+
+          {/* Message */}
+          <div>
+            <label className="text-[14px] font-semibold">Your Message <span className="text-[#DA3643]">*</span></label>
+            <textarea
+              className="w-full px-4 py-3 border border-[#D9D9D9] rounded-md resize-none h-[120px]"
+              placeholder="Type here..."
+              value={textarea}
+              required
+              maxLength={500}
+              onChange={(e) => setTextArea(e.target.value)}
+            />
+          </div>
+
+          {/* Server Error */}
+          {serverError && <div className="text-red-500 text-center">{serverError}</div>}
+
+          {/* ReCAPTCHA */}
+          <div className="flex justify-left">
+            <div className="scale-[0.8] origin-top-left">
+              <ReCAPTCHA
+                sitekey={process.env.NEXT_PUBLIC_RECAPTCHA_SITE_KEY || ""}
+                onChange={handleRecaptchaChange}
+              />
+            </div>
+          </div>
+
+          {/* Submit */}
+          <button
+            type="submit"
+            disabled={!isFormValid || isLoading}
+            className={`w-full py-3 rounded-md text-white font-medium transition ${!isFormValid ? "bg-gray-300" : "bg-[#DA3643] hover:bg-[#b32b37]"}`}
+          >
+            {isLoading ? "Submitting..." : "Submit"}
+          </button>
+
+        </form>
+      </div>
+    </div>
+  );
+};
+
+export default ContactForm;
