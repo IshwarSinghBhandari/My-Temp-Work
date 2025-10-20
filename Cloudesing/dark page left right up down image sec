@@ -1,0 +1,133 @@
+import Image from "next/image";
+
+export const TextSection = ({
+  heading,
+  body,
+  bodyColor = "#cccccc",
+  maxWidth = "1230px",
+  bodyMaxWidth = "1020px",
+  centerText = true,
+}) => {
+  return (
+    <div
+      className={`flex flex-col w-full items-center gap-[18px] ${centerText ? "text-center" : "text-left"
+        } max-w-[${maxWidth}] mx-auto`}
+    >
+      {/* Heading */}
+      <h2
+        className="w-full bg-[linear-gradient(131deg,rgba(109,117,133,0.9)_0%,rgba(218,54,67,0.9)_100%)] [-webkit-background-clip:text] bg-clip-text [-webkit-text-fill-color:transparent] [text-fill-color:transparent] font-semibold text-transparent text-4xl text-center tracking-[0] leading-[normal]">
+        {heading}
+      </h2>
+
+      {/* Body */}
+      <p
+        className={`max-w-[${bodyMaxWidth}] text-[${bodyColor}] text-lg max-md:text-base leading-[26px]`}
+      >
+        {body}
+      </p>
+    </div>
+  );
+};
+
+export const TextImageSection = ({
+  title,
+  description,
+  image,
+  imageAlt,
+  reverse = false, // if true, image on left, text on right
+  bgcircle = true,
+  imageWidth = "600px",
+  imageHeight = "600px",
+}) => {
+  return (
+    <div
+      className={`2xl:px-10 relative flex items-center justify-between gap-20 mx-auto max-lg:flex-col-reverse ${reverse ? "flex-row-reverse" : ""
+        }`}
+    >
+      <div
+        className={`${bgcircle ? "block" : "hidden"} rounded-full absolute left-[30%] w-[471px] h-[471px] opacity-[0.15] blur-[10px]`}
+        style={{
+          background: 'radial-gradient(50% 50% at 50% 50%, #F05B67 0%, rgba(226,98,108,0.2) 61.82%, rgba(0,0,0,0) 100%)',
+        }}
+      ></div>
+
+      {/* Text */}
+      <div
+        className={`flex flex-col w-[50%] max-lg:w-full items-start gap-[18px] text-center md:text-left`}
+      >
+        <h3 className="font-semibold text-[#f9fbfd] text-[28px] max-md:text-2xl leading-normal m-auto md:m-0">
+          {title}
+        </h3>
+        <p className="text-[#cccccc] text-lg leading-[26px]">
+          {description}
+        </p>
+      </div>
+
+      {/* Image */}
+      <div
+        className={`relative w-[${imageWidth}] h-[${imageHeight}] max-lg:w-[450px] max-md:w-full max-md:h-[350px]`}
+      >
+        <img
+          src={image.src}
+          alt={imageAlt}
+          className="object-cover rounded-2xl"
+          sizes={`(max-width: 768px) 100vw, (max-width: 1200px) 50vw, ${imageWidth}`}
+          loading="lazy"
+        />
+      </div>
+    </div>
+  );
+};
+
+export const TextWithImageBelow = ({
+  heading,
+  body,
+  image,
+  imageAlt,
+  headingColor = "#f9fbfd",
+  bodyColor = "#cccccc",
+  headingSize = "text-[28px]",
+  bodySize = "text-lg",
+  bgcircle = true
+}) => {
+  return (
+    <div className="flex relative flex-col-reverse  md:flex-col items-center justify-between gap-12 mx-auto w-full 2xl:px-10">
+      <div
+        className={`${bgcircle ? "block" : "hidden"} rounded-full absolute left-[30%] w-[471px] h-[471px] opacity-[0.15] blur-[10px]`}
+        style={{
+          background: 'radial-gradient(50% 50% at 50% 50%, #F05B67 0%, rgba(226,98,108,0.2) 61.82%, rgba(0,0,0,0) 100%)',
+        }}
+      ></div>
+      {/* Text Section */}
+      <div className="flex flex-col items-center gap-[18px] relative text-center">
+        {/* Heading */}
+        <h3
+          className={`font-semibold ${headingSize} my-[18px] max-md:text-2xl leading-normal`}
+          style={{ color: headingColor }}
+        >
+          {heading}
+        </h3>
+
+        {/* Body */}
+        <p
+          className={`${bodySize} text-lg font-light tracking-[0] leading-[26px]  `}
+          style={{ color: bodyColor }}
+        >
+          {body}
+        </p>
+      </div>
+
+      {/* Image Section */}
+      <div className="relative w-full h-auto">
+        <Image
+          src={image}
+          alt={imageAlt}
+          width={1200}
+          height={600}
+          className="w-full h-auto object-cover"
+          loading="lazy"
+        />
+      </div>
+    </div>
+  );
+};
