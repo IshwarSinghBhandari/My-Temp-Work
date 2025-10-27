@@ -1,0 +1,94 @@
+"use client";
+
+import React, { useEffect, useRef, useState } from "react";
+import { Label } from "@/app/components/ui/label";
+import { Combobox } from "../../ui/combobox";
+import { useDebounce } from "@/hooks/useDebounce";
+import { getMasterVehicles } from "@/utils/services/masterAPI";
+import { useDispatch } from "react-redux";
+import { setSearchQuery } from "@/store/slices/tripSearchSlice";
+import { CREATE_TRIP_SEARCH } from "@/utils/constants";
+import useTripFormSelectors from "../../../../hooks/useTripFormSelectors";
+
+interface Vehicle {
+  _id: string;
+  name?: string;
+  registrationNo?: string;
+  value?: string;
+}
+
+interface VehicleSelectProps {
+  selectedVehicleId: string | null;
+  onSelectVehicle: (vehicleId: string) => void;
+  reset?: number;
+}
+
+const VehicleSelect: React.FC<VehicleSelectProps> = ({ selectedVehicleId, onSelectVehicle, reset = 0 }) => {
+  const dispatch = useDispatch();
+  const { vehicleOptions, vehicleSearchOptions, vehiclePagination } = useTripFormSelectors();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [page, setPage] = useState(1);
+
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
+  const prevSearchRef = useRef("");
+
+  useEffect(() => {
+    // Fetch default vehicle list on mount
+    if (!vehicleOptions?.length) {
+      getMasterVehicles(dispatch);
+    }
+  }, [dispatch, vehicleOptions?.length]);
+
+  //  Then handle search as before
+  useEffect(() => {
+    if (debouncedSearchTerm !== prevSearchRef.current) {
+      setPage(1);
+      getMasterVehicles(dispatch, { searchQuery: debouncedSearchTerm });
+      prevSearchRef.current = debouncedSearchTerm;
+    }
+  }, [debouncedSearchTerm, dispatch]);
+
+  const handleLoadMore = () => {
+    const nextPage = page + 1;
+    if (vehiclePagination && nextPage <= vehiclePagination.totalPages) {
+      setPage(nextPage);
+      getMasterVehicles(dispatch, { searchQuery: searchTerm, pageNo: nextPage });
+    }
+  };
+
+  const getOptions = (): Vehicle[] => (searchTerm ? vehicleSearchOptions : vehicleOptions);
+
+  const selectedVehicle = getOptions().find((v) => v._id === selectedVehicleId);
+  const selectedLabel = selectedVehicle
+    ? selectedVehicle.name || selectedVehicle.registrationNo || selectedVehicle._id
+    : "";
+
+  useEffect(() => {
+    if (reset) setSearchTerm("");
+  }, [reset]);
+
+  return (
+    <div className="grid gap-2">
+      <Label htmlFor="vehicle-select">Vehicle</Label>
+      <Combobox
+        options={getOptions().map((v) => v.name || v.registrationNo || v._id)}
+        selected={selectedLabel}
+        onSelect={(label) => {
+          const selected = getOptions().find(
+            (v) => (v.name || v.registrationNo || v._id) === label
+          );
+          if (selected) onSelectVehicle(selected._id);
+        }}
+        onSearchChange={(value) => {
+          setSearchTerm(value);
+          dispatch(setSearchQuery({ key: CREATE_TRIP_SEARCH[3], value }));
+        }}
+        hasMore={vehiclePagination ? page < vehiclePagination.totalPages : false}
+        onLoadMore={handleLoadMore}
+        reset={reset}
+      />
+    </div>
+  );
+};
+
+export default VehicleSelect;
