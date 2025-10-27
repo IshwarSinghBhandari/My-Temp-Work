@@ -1,0 +1,409 @@
+"use client";
+
+import React, { useState } from "react";
+import { LocationData } from "@/types/trips-type";
+import { Button } from "../../ui/button";
+import { Label } from "../../ui/label";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "../../ui/select";
+import { SimpleDateTimePicker } from "../../common/selectorForForms/SimpleDateTimePickerSelector";
+import { toast } from "sonner";
+
+import { CustomDialog, CustomDialogContent, CustomDialogHeader, CustomDialogTitle } from "../../ui/modalbox";
+import { CreateIndentProps } from "@/types/common";
+import { Input } from "../../ui/input";
+import TimePicker from "../../common/selectorForForms/TimeSelector";
+import { CREATE_TRIP_SEARCH, PAYMENT_SCOPES, ROLE_IDS } from "@/utils/constants";
+import MultiDirverTransporterVehicleSelector from "../../common/selectorForForms/MultiDirverTransporterVehicleSelector";
+import { DateRangePicker } from "../../ui/date-range-picker";
+import { HopPointLocationSelection } from "../../common/selectorForForms/HopPointLocationSelection";
+import VehicleSelect from "../../common/selectorForForms/VehicleSelectionField";
+import { formatTimeToHHMM } from "@/utils/common/parseDateTime";
+import { postCreateAuction } from "@/utils/services/auctionAPI";
+import { useDispatch } from "react-redux";
+
+export function CreateAuctionForm({ isOpen, onClose }: CreateIndentProps) {
+
+  const dispatch = useDispatch();
+  const initialForm = {
+    auctionStart: undefined as Date | undefined,
+    auctionDuration: "",
+    minBid: "",
+    bidDifference: "",
+    transporters: [] as string[], // Changed to array
+    productMaterial: "",
+    weight: "",
+    vehicleType: "",
+    qtyPerVehicle: "",
+    paymentScope: "",
+    ceilingPrice: "",
+    orderNo: "",
+    category: "",
+    dateRange: undefined as { from: Date; to: Date } | undefined,
+    reportingTime: "",
+    loadingPoints: [] as string[],
+    unloadingPoints: [] as string[],
+  };
+
+  const [formData, setFormData] = useState(initialForm);
+  const [resetCount, setResetCount] = useState(0);
+  const [selectedSourceLocation, setSelectedSourceLocation] = useState<LocationData | null>(null);
+  const [selectedDestinationLocation, setSelectedDestinationLocation] = useState<LocationData | null>(null);
+
+  const handleChange = <T extends keyof typeof formData>(name: T, value: typeof formData[T]) => {
+    setFormData((prev) => ({ ...prev, [name]: value }));
+  };
+
+  const handleSubmit = async () => {
+    const requiredFields: (keyof typeof formData)[] = [
+      "auctionDuration",
+      "minBid",
+      "bidDifference",
+      "productMaterial",
+      "weight",
+      "vehicleType",
+      "qtyPerVehicle",
+      "paymentScope",
+      "ceilingPrice",
+      "dateRange",
+      "reportingTime",
+      "loadingPoints",
+      "unloadingPoints",
+      "category",
+      "orderNo",
+    ];
+
+    const fieldNames: Record<string, string> = {
+      auctionStart: "Auction Start Date/Time",
+      auctionDuration: "Auction Duration",
+      minBid: "Minimum Bid",
+      bidDifference: "Bid Difference",
+      productMaterial: "Product/Material",
+      weight: "Weight",
+      vehicleType: "Vehicle Type",
+      qtyPerVehicle: "Qty per Vehicle",
+      paymentScope: "Payment Scope",
+      ceilingPrice: "Ceiling Price",
+      orderNo: "Order No.",
+      category: "Category",
+      dateRange: "Loading Date Range",
+      reportingTime: "Vehicle Reporting Time",
+      loadingPoints: "Loading Points",
+      unloadingPoints: "Unloading Points",
+    };
+
+    const missingFields = requiredFields.filter((f) => {
+      const value = formData[f];
+      if (Array.isArray(value)) return value.length === 0;
+      if (typeof value === "object" && value !== null) return false;
+      return !value;
+    });
+
+    if (missingFields.length > 0) {
+      const missingNames = missingFields.map((f) => fieldNames[f]).join(", ");
+      toast.warning(`Please fill the following fields: ${missingNames}`);
+      return;
+    }
+
+    const payload = {
+      auctionStartDateTime: formData.auctionStart?.toISOString() || null,
+      startImmediately: !formData.auctionStart,
+      durationInMinutes: parseInt(formData.auctionDuration) || 0,
+      minimumBidPT: parseInt(formData.minBid) || 0,
+      bidDifference: parseInt(formData.bidDifference) || 0,
+      transporterIds: formData.transporters,
+      product: formData.productMaterial,
+      totalWeightMT: parseFloat(formData.weight) || 0,
+      vehicleTypeId: formData.vehicleType,
+      vehicleQty: parseInt(formData.qtyPerVehicle) || 0,
+      paymentScope: formData.paymentScope,
+      ceilingPricePT: parseInt(formData.ceilingPrice) || 0,
+      orderNo: formData.orderNo || null,
+      category: formData.category || null,
+      loadingStartDate: formData.dateRange?.from?.toISOString() || null,
+      loadingEndDate: formData.dateRange?.to?.toISOString() || null,
+      vehicleReportingTime: formatTimeToHHMM(formData.reportingTime),
+      loadingPoints: formData.loadingPoints,
+      unloadingPoints: formData.unloadingPoints,
+      status: null,
+    };
+    // console.log("Submitting Auction with payload:", payload);
+
+    const success = await postCreateAuction(payload, dispatch);
+
+    if (success) {
+      handleReset();
+      onClose();
+    }
+  };
+
+  const handleReset = () => {
+    setFormData(initialForm);
+    setResetCount((prev) => prev + 1);
+  };
+
+  return (
+    <CustomDialog open={isOpen} onOpenChange={onClose}>
+      <CustomDialogContent className="max-w-[72vw]! xl:max-w-[45vw]! max-h-[95vh] overflow-y-auto rounded-[4px] border-2 border-gray-100">
+        <CustomDialogHeader onClose={onClose}>
+          <CustomDialogTitle>Create Auction</CustomDialogTitle>
+        </CustomDialogHeader>
+
+        <div className="space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            {/* Auction Start */}
+            <SimpleDateTimePicker
+              id="auctionStart"
+              label="Auction Start Date/Time"
+              selected={formData.auctionStart}
+              onChange={(date) => handleChange("auctionStart", date)}
+            />
+
+            {/* Auction Duration */}
+            <TimePicker
+              id="auction-duration"
+              label="Auction Duration"
+              labelSpan="(mins)"
+              value={formData.auctionDuration}
+              onChange={(value) => handleChange("auctionDuration", value)}
+            />
+
+            {/* Minimum Bid */}
+            <div className="space-y-2">
+              <Label>Minimum Bid (PT) *</Label>
+              <Input
+                type="number"
+                placeholder="Enter minimum bid"
+                value={formData.minBid}
+                onChange={(e) => handleChange("minBid", e.target.value)}
+                className="w-full p-2 px-3 border rounded"
+              />
+            </div>
+
+            {/* Bid Difference */}
+            <div className="space-y-2">
+              <Label>Bid Difference *</Label>
+              <Input
+                type="number"
+                placeholder="Enter bid difference"
+                value={formData.bidDifference}
+                onChange={(e) => handleChange("bidDifference", e.target.value)}
+                className="w-full p-2 px-3 border rounded"
+              />
+            </div>
+          </div>
+
+          {/* Transporter - Multi Select */}
+          <div className="space-y-2">
+            <MultiDirverTransporterVehicleSelector
+              trip_search_type={CREATE_TRIP_SEARCH[1]}
+              selectedUserId={formData.transporters}
+              roleId={ROLE_IDS.TRANSPORTER}
+              onSelect={(selectedIds) => {
+                const idsArray: string[] = Array.isArray(selectedIds)
+                  ? selectedIds
+                  : selectedIds
+                    ? [selectedIds]
+                    : [];
+                handleChange("transporters", idsArray);
+              }}
+              reset={resetCount}
+              placeholder="Select transporters"
+            />
+
+          </div>
+          <hr />
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            {/* Product/Material */}
+            <div className="space-y-2">
+              <Label>Product/Material *</Label>
+              <Input
+                type="text"
+                value={formData.productMaterial}
+                onChange={(e) => handleChange("productMaterial", e.target.value)}
+                className="w-full p-2 border rounded"
+                placeholder="Enter product/material"
+              />
+            </div>
+
+            {/* Weight */}
+            <div className="space-y-2">
+              <Label>Total Weight (MT) *</Label>
+              <Input
+                type="number"
+                value={formData.weight}
+                onChange={(e) => handleChange("weight", e.target.value)}
+                className="w-full p-2 border rounded"
+                placeholder="Enter total weight (MT)"
+              />
+            </div>
+
+            {/* Vehicle Type */}
+            <div className="space-y-2">
+
+              <VehicleSelect
+                selectedVehicleId={formData.vehicleType}
+                onSelectVehicle={(val) => handleChange("vehicleType", val)}
+              // reset={reset}
+              />
+            </div>
+
+            {/* Vehicle Qty */}
+            <div className="space-y-2">
+              <Label>Vehicle Quantity *</Label>
+              <Input
+                type="number"
+                value={formData.qtyPerVehicle}
+                onChange={(e) => handleChange("qtyPerVehicle", e.target.value)}
+                className="w-full p-2 border rounded"
+                placeholder="Enter vehicle quantity"
+              />
+            </div>
+          </div>
+
+          {/* 4-col */}
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-x-8 gap-y-6">
+            {/* Payment Scope */}
+            <div className="space-y-2">
+              <Label>Payment Scope *</Label>
+              <Select
+                value={formData.paymentScope}
+                onValueChange={(val) => handleChange("paymentScope", val)}
+              >
+                <SelectTrigger className="w-full">
+                  <SelectValue placeholder="Select payment scope" />
+                </SelectTrigger>
+                <SelectContent>
+                  {PAYMENT_SCOPES.map((item) => (
+                    <SelectItem key={item.id} value={item.name}>
+                      {item.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Ceiling Price */}
+            <div className="space-y-2">
+              <Label>Ceiling Price (PT) *</Label>
+              <Input
+                type="number"
+                value={formData.ceilingPrice}
+                onChange={(e) => handleChange("ceilingPrice", e.target.value)}
+                className="w-full p-2 border rounded"
+                placeholder="Enter ceiling price"
+              />
+            </div>
+
+            {/* Order No */}
+            <div className="space-y-2">
+              <Label>Order No.</Label>
+              <Input
+                type="number"
+                value={formData.orderNo}
+                onChange={(e) => handleChange("orderNo", e.target.value)}
+                className="w-full p-2 border rounded"
+                placeholder="Enter order no."
+              />
+            </div>
+
+            {/* Category */}
+            <div className="space-y-2">
+              <Label>Category</Label>
+              <Input
+                type="text"
+                value={formData.category}
+                onChange={(e) => handleChange("category", e.target.value)}
+                className="w-full p-2 border rounded"
+                placeholder="Enter category"
+              />
+            </div>
+          </div>
+
+          {/* Loading Date Range & Reporting Time */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            <DateRangePicker
+              dateRange={formData.dateRange}
+              setDateRange={(range) =>
+                handleChange(
+                  "dateRange",
+                  range?.from && range?.to ? { from: range.from, to: range.to } : undefined
+                )
+              }
+              placeholder="Select loading date range "
+              onClear={() => handleChange("dateRange", undefined)}
+              label
+            />
+
+            {/* Vehicle Reporting Time */}
+            <TimePicker
+              id="reporting-time"
+              label="Vehicle Reporting Time "
+              labelSpan="(HH:MM)"
+              value={formData.reportingTime}
+              onChange={(value) => handleChange("reportingTime", value)}
+            />
+          </div>
+
+          {/* Loading & Unloading Points */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-6">
+            {/* Loading Points */}
+            <HopPointLocationSelection
+              selectedLocations={formData.loadingPoints.map(
+                (id) => ({ _id: id, name: id } as LocationData)
+              )}
+              selectedSourceLocation={selectedSourceLocation?._id}
+              selectedDestinationLocation={selectedDestinationLocation?._id}
+              excludedLocationIds={formData.unloadingPoints} // 👈 Hide unloading points from loading list
+              onLocationSelectionChange={(locations: LocationData[]) =>
+                handleChange(
+                  "loadingPoints",
+                  locations.map((loc) => loc._id)
+                )
+              }
+              reset={resetCount}
+              label="Loading Point(s)"
+            />
+
+            {/* Unloading Points */}
+            <HopPointLocationSelection
+              selectedLocations={formData.unloadingPoints.map(
+                (id) => ({ _id: id, name: id } as LocationData)
+              )}
+              selectedSourceLocation={selectedSourceLocation?._id}
+              selectedDestinationLocation={selectedDestinationLocation?._id}
+              excludedLocationIds={formData.loadingPoints} // 👈 Hide loading points from unloading list
+              onLocationSelectionChange={(locations: LocationData[]) =>
+                handleChange(
+                  "unloadingPoints",
+                  locations.map((loc) => loc._id)
+                )
+              }
+              reset={resetCount}
+              label="Unloading Point(s)"
+            />
+          </div>
+          <p className="text-blue-600 text-[14px] font-medium underline decoration-blue-500 underline-offset-3">
+            Rate History
+          </p>
+
+          {/* Actions */}
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" type="button" onClick={handleReset}>
+              Reset
+            </Button>
+            <Button type="button" className="bg-blue-600 text-white rounded-[4px] font-bold" onClick={handleSubmit}>
+              Submit
+            </Button>
+          </div>
+        </div>
+      </CustomDialogContent>
+    </CustomDialog>
+  );
+}
