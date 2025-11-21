@@ -158,3 +158,136 @@ export function LoginForm({
       console.error(error);
     }
   };
+  
+  return (
+    <div className={cn("flex flex-col gap-6", className)} {...props}>
+      <Card>
+        <CardHeader className="text-center">
+          <CardTitle className="text-xl font-[700]">Welcome back</CardTitle>
+          {/* <CardDescription>
+            Login with your Google or Microsoft account
+          </CardDescription> */}
+        </CardHeader>
+        <CardContent>
+          <form onSubmit={handleSubmit}>
+            <div className="grid gap-6">
+              {/* <div className="flex flex-col gap-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full cursor-pointer"
+                  onClick={() => router.push(Route.google)}
+                >
+                  <Image src={GoogleLogo} alt="Google logo" />
+                  Login with Google
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  className="w-full cursor-pointer"
+                  onClick={() => router.push(Route.microsoft)}
+                >
+                  <Image src={MicrosoftLogo} alt="Microsoft logo" />
+                  Login with Microsoft
+                </Button>
+              </div>
+              <div className="after:border-border relative text-center text-sm after:absolute after:inset-0 after:top-1/2 after:z-0 after:flex after:items-center after:border-t">
+                <span className="bg-card text-muted-foreground relative z-10 px-2">
+                  Or continue with
+                </span>
+              </div> */}
+              <div className="grid gap-6">
+                <div className="grid gap-3">
+                  <Label htmlFor="email">Email</Label>
+                  <Input
+                    id="email"
+                    type="email"
+                    value={formState.email}
+                    placeholder="Enter your email address"
+                    onChange={(e) =>
+                      setFormState((prevState) => ({
+                        ...prevState,
+                        email: e.target.value,
+                      }))
+                    }
+                    required
+                    disabled={formState.isLoading}
+                  />
+                </div>
+                <div className="grid gap-3">
+
+                  <PasswordInput
+                    id="password"
+                    label="Password"
+                    value={formState.password}
+                    onChange={(e) => setFormState((prevState) => ({
+                      ...prevState,
+                      password: e.target.value,
+                    }))}
+                    placeholder="Enter Password"
+                    disabled={formState.isLoading}
+                  />
+
+                </div>
+                <div className="flex items-center">
+                  <div className="flex items-center space-x-2">
+                    <Checkbox
+                      id="rememberMe"
+                      checked={formState.rememberMe}
+                      onCheckedChange={(checked) =>
+                        setFormState((prevState) => ({
+                          ...prevState,
+                          rememberMe: checked as boolean,
+                        }))
+                      }
+                      disabled={formState.isLoading}
+                    />
+
+                    <label
+                      htmlFor="rememberMe"
+                      className="text-sm font-normal leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70"
+                    >
+                      Remember me
+                    </label>
+                  </div>
+                  <Link
+                    href={Route.forgetPassword}
+                    className="ml-auto text-sm font-normal underline-offset-4 hover:underline cursor-pointer p-0 h-auto"
+                  >
+                    Forgot Password?
+                  </Link>
+                </div>
+                <Button
+                  type="submit"
+                  className="w-full cursor-pointer bg-[#2563EB] text-white"
+                  disabled={formState.isLoading}
+                >
+                  {formState.isLoading ? (
+                    <Spinner size={"small"} className="text-white" />
+                  ) : (
+                    "Login"
+                  )}
+                </Button>
+              </div>
+              {/* <div className="text-center text-sm">
+                <span>Don&rsquo;t have an account?</span>{" "}
+                <Link
+                  href={Route.register}
+                  className="text-sm font-medium underline-offset-4 hover:underline"
+                >
+                  Sign up
+                </Link>
+              </div> */}
+            </div>
+          </form>
+        </CardContent>
+      </Card>
+      <div className="text-balance text-center text-xs text-muted-foreground [&_a]:underline [&_a]:underline-offset-4 [&_a]:hover:text-primary  ">
+        By clicking continue, you agree to our{" "}
+        <Link href="#">Terms of Service</Link> and{" "}
+        <Link href="#">Privacy Policy</Link>.
+      </div>
+    </div>
+  );
+}
+
