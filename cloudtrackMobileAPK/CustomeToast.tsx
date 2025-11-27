@@ -343,3 +343,29 @@ export function ToastProvider({ children, bottomOffset = 0 }: ToastProviderProps
   );
 }
 
+export function useToast() {
+  const context = React.useContext(ToastContext);
+  if (!context) {
+    throw new Error('useToast must be used within ToastProvider');
+  }
+
+  return {
+    show: (message: string, options?: Omit<ToastData, 'id' | 'message'>) => {
+      context.showToast({ message, ...options });
+    },
+    success: (message: string, options?: Omit<ToastData, 'id' | 'message' | 'variant'>) => {
+      context.showToast({ message, variant: 'success', ...options });
+    },
+    error: (message: string, options?: Omit<ToastData, 'id' | 'message' | 'variant'>) => {
+      context.showToast({ message, variant: 'error', ...options });
+    },
+    warning: (message: string, options?: Omit<ToastData, 'id' | 'message' | 'variant'>) => {
+      context.showToast({ message, variant: 'warning', ...options });
+    },
+    info: (message: string, options?: Omit<ToastData, 'id' | 'message' | 'variant'>) => {
+      context.showToast({ message, variant: 'info', ...options });
+    },
+    hide: context.hideToast,
+  };
+}
+
