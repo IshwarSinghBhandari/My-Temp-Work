@@ -411,6 +411,7 @@ function ControlTower() {
 
 export default ControlTower;
 
+//for constant
 export const SESSION_STORAGE_KEY = {
   CT_FILTER_TAB_SELECTION: "filterTabsSelected",
   CT_SELECTED_TRIP_INDEX: "CT_SelectedTripIndex_",
