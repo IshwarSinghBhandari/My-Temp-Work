@@ -1,0 +1,35 @@
+import DashboardMain from '@/components/dashboard/DashboardMain'
+import React from 'react'
+import { View } from 'react-native'
+import { useSwipeNavigation } from '@/hooks/useSwipeNavigation'
+
+function index() {
+  const swipeHandlers = useSwipeNavigation(true)
+  
+  return (
+    <View style={{ flex: 1 }} {...swipeHandlers}>
+      <DashboardMain />
+    </View>
+  )
+}
+
+export default index
+
+import TripMain from '@/components/trip/TripMain';
+import { Stack } from 'expo-router';
+import { View } from 'react-native';
+import { useSwipeNavigation } from '@/hooks/useSwipeNavigation';
+
+export default function TripsScreen() {
+  const swipeHandlers = useSwipeNavigation(true);
+
+  return (
+    <>
+      <Stack.Screen options={{ title: 'Trips' }} />
+      <View style={{ flex: 1 }} {...swipeHandlers}>
+        <TripMain />
+      </View>
+    </>
+  );
+}
+
