@@ -263,15 +263,9 @@ export default function Carousel3D() {
                               key={tagIdx}
                               onClick={() => {
                                 if (isCurrentCard) {
-                                  // If clicking on a tag that's not active yet
-                                  if (tagIdx > activeTagIndex) {
+                                  // Allow clicking on any tag to jump to it
+                                  if (tagIdx !== activeTagIndex) {
                                     setActiveTagIndex(tagIdx);
-                                  }
-                                  // If last tag, move to next slide
-                                  else if (tagIdx === activeTagIndex && tagIdx === 2) {
-                                    const nextSlide = (activeSlideIndex + 1) % cardCount;
-                                    setActiveSlideIndex(nextSlide);
-                                    setActiveTagIndex(0);
                                   }
                                 }
                               }}
