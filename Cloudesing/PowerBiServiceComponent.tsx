@@ -1,354 +1,433 @@
-import dynamic from "next/dynamic";
-import { GoogleTagManager } from "@next/third-parties/google";
-import { BusinessValue, ValueCard } from "@/components/common/BusinessValue";
-import RollingSliderCarousel_2, { CarouselCard } from "../Carousels/rolling/RollingSliderCarousel_2";
-import BusinessValueIcon1 from "../../../public/image/powerBi/BusinessValueIcon1.avif";
-import BusinessValueIcon2 from "../../../public/image/powerBi/BusinessValueIcon2.avif";
-import BusinessValueIcon3 from "../../../public/image/powerBi/BusinessValueIcon3.avif";
-import BusinessValueIcon4 from "../../../public/image/powerBi/BusinessValueIcon4.avif";
-import BusinessValueMain from "../../../public/image/powerBi/BusinessValueMain.webp";
-import BusinessValueMainBG from "../../../public/image/powerApp/BusinessValueMainBG.avif";
-import powerCardIcon1 from "../../../public/image/powerApp/powerCardIcon1.webp";
-import powerCardIcon2 from "../../../public/image/powerBi/powerCardIcon2.webp";
-import powerCardIcon3 from "../../../public/image/Icon/powerCardIcon3.webp";
-import powerCardIcon4 from "../../../public/image/Icon/powerCardIcon4.webp";
-import powerCardIcon5 from "../../../public/image/powerBi/powerCardIcon4.webp";
-import powerCardIcon6 from "../../../public/image/powerBi/powerCardIcon6.webp";
-// import { AchivementNumbers } from "@/components/common/AchivementNumbers";
-import FAQSection from "@/components/FrequentlyAskedQuestions";
-import { ServiceSection, ServicesWeOffer } from "./ServicesWeOffer";
-import Link from "next/link";
-import CommonButton from "../Buttons/button";
-// const WhatCustomerSay2 = dynamic(() => import("../FunctionalComponents/WhatCustomerSay/WhatCustomerSay2"));
-const RecentBlogs = dynamic(() => import("../FunctionalComponents/RecentBlogs/RecentBlogs"));
-const ContactForm = dynamic(() => import("../FunctionalComponents/ContactUs/ContactForm"));
-const TwoColumnSection = dynamic(() => import("../common/TwoColumnSection"));
-const PowerBiServiceCapability = dynamic(() => import("./PowerBiServiceCapability"));
-const WhyChooseCloudesign = dynamic(() => import("@/components/PowerAppBi/WhyChooseCloudesign"));
+"use client";
 
-interface ServicesComponentProps {
-  content: {
-    MainSection: {
+import { useRef, useState, useEffect, useCallback } from "react";
+import { ChevronLeft, ChevronRight } from "lucide-react";
 
-      title: string;
-      heading: string;
-    };
-    section2: {
-      heading: string;
-      paragraph: string;
-      paragraph1?: string;
-      paragraph2?: string;
-    };
-    section8: {
-      category: string;
-    };
-  };
+// Type definitions
+export interface CarouselTag {
+  label: string;
+  description: string | string[];
+  active?: boolean;
 }
 
-const BUSINESS_VALUE_DATA = {
-  heading: "Strategic Benefits of Power BI Solutions",
-  description:
-    "Choosing Cloudesign as your Power BI consulting services partner means gaining more than just dashboards and reports; it means unlocking business growth. Our Power BI solutions empower organizations to",
-  mainImage: BusinessValueMain,
-  backgroundImage: BusinessValueMainBG,
-  cards: [
-    { text: "Increase efficiency by reducing time spent on manual data processing", icon: BusinessValueIcon1 },
-    { text: "Improve accuracy with centralized data models and automated reporting", icon: BusinessValueIcon2 },
-    { text: "Enhance collaboration through interactive Power BI reports and shared insights", icon: BusinessValueIcon3 },
-    { text: "Maximize ROI by connecting Power BI with Microsoft 365, Azure, and other tools", icon: BusinessValueIcon4 },
-  ] as ValueCard[],
-  footerText:
-    "With our proven expertise, your business can transform data into a strategic advantage, driving productivity, customer satisfaction, and long-term growth",
-};
+export interface CarouselCard {
+  id?: number;
+  image: string;
+  imageMobile?: string;
+  heading: string;
+  title: string;
+  description: string;
+  tags: CarouselTag[];
+  buttonLink?: string;
+  buttonText?: string;
+}
 
-const POWER_BI_CAROUSEL_CARDS: CarouselCard[] = [
-  {
-    id: 0,
-    image: "/image/powerBi/BusinessValueMain.webp",
-    imageMobile: "/image/powerBi/BusinessValueMain.webp",
-    heading: "CASE STUDY ",
-    title: "Client Context / Industry",
-    description:
-      "A B2B manufacturing company supplying components to enterprise customers. The company used an ERP system but relied on spreadsheets for management and MIS reporting.",
-    tags: [
-      {
-        label: "The Problem",
-        description: [
-          "Financial and operational data were siloed",
-          "Limited visibility into margins and receivables",
-          "Monthly MIS reports were slow and manually prepared",
-          "Frequent discrepancies during management reviews"
-        ],
-        active: true,
-      },
-      {
-        label: "What We Built / Delivered",
-        description: [
-          "Modeled ERP and finance data in Power BI",
-          "Published MIS dashboards via Power BI Service",
-          "Reports covering revenue, costs, margins, and receivables",
-          "Access control for finance and leadership teams"
-        ],
-        active: false,
-      },
-      {
-        label: "Impact / Result",
-        description: [
-          "Faster and more reliable MIS reporting",
-          "Clearer margin and cash flow visibility",
-          "Reduced dependency on manual Excel consolidation",
-          "More structured monthly reviews"
-        ],
-        active: false,
-      },
-    ],
-  },
-];
+export interface RollingSliderCarouselProps {
+  cards: CarouselCard[];
+  title?: string;
+  description?: string;
+  tagInterval?: number;
+  primaryColor?: string;
+  backgroundColor?: string;
+  buttonText?: string;
+  inactiveScale?: number;
+  radius?: number;
+  hideButton?: boolean;
+}
 
-const sections: ServiceSection[] = [
-  {
-    id: "development",
-    title: "Power BI Development Services",
-    description:
-      "Our Power BI developers design custom solutions to help you connect, visualize, and analyze data from multiple sources.",
-    subsection: [
-      { id: 1, text: "Build interactive Power BI reports and dashboards" },
-      { id: 2, text: "Integrate Power BI Desktop with your existing applications" },
-      { id: 3, text: "Enable AI-driven insights for real-time decision making" },
-      { id: 4, text: "Optimize data models and enhance report performance for faster analytics" },
-      { id: 5, text: "From data collection to Power BI application deployment, we deliver end-to-end development support" },
-    ],
-  },
-  {
-    id: "consulting",
-    title: "Power BI Consulting Services",
-    description:
-      "Leverage our Power BI consulting services to resolve technical challenges and maximize ROI from your BI investment.",
-    subsection: [
-      { id: 6, text: "Identify the right Power BI software setup for your business" },
-      { id: 7, text: "Optimize performance and scalability of Power BI reports" },
-      { id: 8, text: "Design best-fit BI architecture for long-term growth" },
-      { id: 9, text: "Align insights with business goals and KPIs" },
-    ],
-  },
-  {
-    id: "organizational-strategy",
-    title: "Power BI Organizational Strategy",
-    description:
-      "Transform into a data-driven enterprise with a tailored Power BI organizational strategy.",
-    subsection: [
-      { id: 11, text: "Assess current data maturity" },
-      { id: 12, text: "Benchmark against industry best practices" },
-      { id: 13, text: "Create a roadmap for BI adoption" },
-      { id: 14, text: "Drive data culture across teams" },
-    ],
-  },
-  {
-    id: "managed-services",
-    title: "Power BI Managed Services",
-    description:
-      "Reduce overhead and focus on growth while we manage your Power BI solution end to end.",
-    subsection: [
-      { id: 16, text: "Monitor system performance and usage" },
-      { id: 17, text: "Provide ongoing updates and upgrades" },
-      { id: 18, text: "Optimize data pipelines and refresh cycles" },
-      { id: 19, text: "Deliver 24/7 support for Power BI desktop and cloud environments" },
-    ],
-  },
-];
+export default function RollingSliderCarousel_2({
+  cards,
+  title = "Our Areas of Expertise",
+  description = "Accelerating business transformation through intelligent innovation, robust engineering, and specialized workforce solutions.",
+  tagInterval = 6000,
+  primaryColor = "#da3643",
+  backgroundColor = "#101010",
+  buttonText = "Get in touch",
+  inactiveScale = 0.75,
+  radius = 22,
+  hideButton = false,
+}: RollingSliderCarouselProps) {
+  const carouselRef = useRef(null);
+  const [activeSlideIndex, setActiveSlideIndex] = useState(0);
+  const [activeTagIndex, setActiveTagIndex] = useState(0);
+  const [windowWidth, setWindowWidth] = useState(0);
+  const slideIndexRef = useRef(0);
+  const tagIndexRef = useRef(0);
+  const prevSlideIndexRef = useRef(0);
+  const tagIntervalRef = useRef<NodeJS.Timeout | null>(null);
 
-const POWER_APP_BI_CARDS = [
-  {
-    img: powerCardIcon1,
-    title: "Microsoft Professionals",
-    desc: "Certified Power BI and Microsoft technology experts with deep data analytics and visualization experience.",
-  },
-  {
-    img: powerCardIcon2,
-    title: "Power Platform Expertise",
-    desc: "Skilled in Power BI, Power Apps, and Power Automate to deliver integrated, data-driven business solutions.",
-  },
-  {
-    img: powerCardIcon3,
-    title: "Proven Data & AI Success",
-    desc: "Delivered impactful dashboards, analytics, and AI-powered insights to drive smarter, faster decisions.",
-  },
-  {
-    img: powerCardIcon5,
-    title: "Flexible Engagement Models",
-    desc: "Choose from Development, Consulting, Strategy, or Managed Services tailored to your goals and scale.",
-  },
-  {
-    img: powerCardIcon4,
-    title: "Enterprise-Grade Implementation",
-    desc: "Secure, scalable, and compliant Power BI architectures designed for high performance and reliability.",
-  },
-  {
-    img: powerCardIcon6, // Reuse or replace with another icon if available
-    title: "Seamless Integration",
-    desc: "Effortless connectivity with Microsoft 365, Dynamics 365, Azure, and your existing enterprise systems.",
-  },
-];
+  // Track window width for responsive radius
+  useEffect(() => {
+    const handleResize = () => {
+      setWindowWidth(window.innerWidth);
+    };
 
-const metrics = [
-  {
-    value: "500+",
-    title: "Successful Transformations",
-    description:
-      "ROI-generating digital solutions delivered to Industry leaders across 10+ sectors",
+    handleResize();
+    window.addEventListener('resize', handleResize);
 
-  },
-  {
-    value: "150+",
-    title: "Expert Engineers",
-    description:
-      "Cross-functional experts across AI, ML, IoT & more collaborating for excellent Client experience",
-  },
-  {
-    value: "9+",
-    title: "Years Of Excellence",
-    description:
-      "Unparalleled IT execution that’s forged lasting customer relationships",
-  },
-];
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
 
-const faqs = [
-  {
-    question: "1. What is the Power BI service?",
-    answer:
-      "The Power BI service is a cloud-based business analytics platform by Microsoft that enables users to visualize data, share insights, and make data-driven decisions. It allows businesses to create dashboards, reports, and interactive analytics accessible from anywhere.",
-  },
-  {
-    question: "2. What are the different types of Power BI services?",
-    answer: "Power BI offers multiple services, including:",
-    points: [
-      "Power BI Desktop – for report creation and data modeling.",
-      "Power BI Service (Cloud) – for collaboration, dashboards, and online report publishing.",
-      "Power BI Mobile – for accessing reports on mobile devices.",
-      "Power BI Report Server – for on-premises report hosting and management.",
-    ],
-  },
-  {
-    question: "3. What are the 4 roles in Power BI service?",
-    answer: "Power BI service defines four main roles to manage access and permissions:",
-    points: [
-      "Admin – Manages workspace and security settings.",
-      "Member – Can edit and publish content.",
-      "Contributor – Can create and update content but cannot manage workspace settings.",
-      "Viewer – Can only view reports and dashboards.",
-    ],
-  },
-  {
-    question: "4. Is Power BI a CRM or ERP?",
-    answer:
-      "No. Power BI is neither a CRM nor an ERP system. It is a business intelligence and analytics platform that integrates data from CRMs, ERPs, databases, and other sources to provide insights and visualizations.",
-  },
-  {
-    question: "5. What is the difference between Power BI Desktop and Power BI Server?",
-    answer: "Here’s how they differ:",
-    points: [
-      "Power BI Desktop – Installed locally, used for creating reports, dashboards, and data models.",
-      "Power BI Report Server – On-premises server for publishing, managing, and sharing reports securely within an organization.",
-    ],
-  },
-  {
-    question: "6. Where is Power BI service hosted?",
-    answer:
-      "Power BI service is hosted on Microsoft Azure Cloud, ensuring scalability, security, and global accessibility. Users can access dashboards and reports from anywhere using a web browser or mobile app.",
-  },
-  {
-    question: "7. How does Power BI integrate with other business tools?",
-    answer:
-      "Power BI integrates seamlessly with Microsoft 365, Dynamics 365, SQL Server, Azure, Excel, Salesforce, and other databases. This allows organizations to consolidate data from multiple sources into interactive dashboards and analytics.",
-  },
-  {
-    question: "8. What are the benefits of using Power BI for businesses?",
-    answer:
-      "Power BI helps businesses visualize data, monitor KPIs, identify trends, and make data-driven decisions. It improves collaboration, reduces reporting time, and enables real-time analytics across departments.",
-  },
-  {
-    question: "9. Can Power BI create real-time dashboards?",
-    answer:
-      "Yes. Power BI supports real-time data streaming from sources like IoT devices, APIs, and databases. This allows businesses to monitor live metrics and respond quickly to changing business conditions.",
-  },
-  {
-    question: "10. How can my business implement Power BI services?",
-    answer:
-      "Partner with a Power BI consulting service to deploy, customize, and integrate Power BI with your existing systems. Expert consultants provide data modeling, dashboard design, and analytics strategy to help your organization become data-driven.",
-  },
-];
+  // Use provided cards or default to empty array
+  const cardData = cards || [];
+  const cardCount = cardData.length;
+  const isSingleCard = cardCount === 1;
+  const angle = cardCount > 0 ? 360 / cardCount : 0;
+  const mobileRadius = radius;
+  
+  // Early return if no cards provided
+  if (cardCount === 0) {
+    return null;
+  }
 
+  // Initialize carousel rotation - start at 0 to show first card
+  useEffect(() => {
+    if (!carouselRef.current) return;
 
-function PowerBiServiceComponent(data: ServicesComponentProps) {
+    const rotateY = 0;
+    prevSlideIndexRef.current = 0;
+
+    if (carouselRef.current) {
+      carouselRef.current.style.transform = `rotateY(${rotateY}deg)`;
+      carouselRef.current.style.transformStyle = 'preserve-3d';
+    }
+  }, []);
+
+  // Track total rotation to continue in same direction
+  const totalRotationRef = useRef(0);
+
+  // Update carousel rotation when slide index changes
+  useEffect(() => {
+    if (!carouselRef.current) return;
+
+    // If single card, keep rotation at 0 and stop rotation
+    if (isSingleCard) {
+      totalRotationRef.current = 0;
+      if (carouselRef.current) {
+        carouselRef.current.style.transition = 'transform 1s cubic-bezier(0.645, 0.045, 0.355, 1)';
+        carouselRef.current.style.transform = `rotateY(0deg)`;
+      }
+      return;
+    }
+
+    const prevSlide = prevSlideIndexRef.current;
+    const currentSlide = activeSlideIndex;
+
+    // Always continue in forward direction (when going from last to first)
+    if (prevSlide === cardCount - 1 && currentSlide === 0) {
+      // Continue forward rotation
+      totalRotationRef.current -= angle;
+    }
+    // Going backward (from first to last via prev button)
+    else if (prevSlide === 0 && currentSlide === cardCount - 1) {
+      // Go backward
+      totalRotationRef.current += angle;
+    }
+    // Normal forward movement
+    else if (currentSlide > prevSlide) {
+      totalRotationRef.current -= angle;
+    }
+    // Normal backward movement
+    else if (currentSlide < prevSlide) {
+      totalRotationRef.current += angle;
+    }
+
+    prevSlideIndexRef.current = currentSlide;
+
+    if (carouselRef.current) {
+      carouselRef.current.style.transition = 'transform 1s cubic-bezier(0.645, 0.045, 0.355, 1)';
+      carouselRef.current.style.transform = `rotateY(${totalRotationRef.current}deg)`;
+    }
+  }, [activeSlideIndex, angle, cardCount, isSingleCard]);
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    slideIndexRef.current = activeSlideIndex;
+  }, [activeSlideIndex]);
+
+  useEffect(() => {
+    tagIndexRef.current = activeTagIndex;
+  }, [activeTagIndex]);
+
+  // Function to start/restart the tag cycling timer
+  const startTagTimer = useCallback(() => {
+    // Clear existing interval if any
+    if (tagIntervalRef.current) {
+      clearInterval(tagIntervalRef.current);
+    }
+
+    // Start new interval
+    tagIntervalRef.current = setInterval(() => {
+      const currentTag = tagIndexRef.current;
+      const currentSlide = slideIndexRef.current;
+      const maxTagIndex = cardData[currentSlide]?.tags?.length - 1 || 0;
+
+      if (currentTag < maxTagIndex) {
+        setActiveTagIndex(currentTag + 1);
+      } else {
+        // Only rotate to next slide if there are multiple cards
+        if (!isSingleCard && cardCount > 1) {
+          const nextSlide = (currentSlide + 1) % cardCount;
+          setActiveSlideIndex(nextSlide);
+          setActiveTagIndex(0);
+        } else {
+          // For single card, just loop back to first tag
+          setActiveTagIndex(0);
+        }
+      }
+    }, tagInterval);
+  }, [cardCount, tagInterval, cardData, isSingleCard]);
+
+  // Manual navigation
+  const rotate = (direction: "next" | "prev") => {
+    // Don't allow rotation if there's only one card
+    if (isSingleCard) {
+      return;
+    }
+    
+    setActiveSlideIndex((prev) => {
+      if (direction === "next") {
+        return (prev + 1) % cardCount;
+      } else {
+        return (prev - 1 + cardCount) % cardCount;
+      }
+    });
+    setActiveTagIndex(0);
+    // Restart the timer when manually navigating
+    startTagTimer();
+  };
+
+  // Tag cycling timer
+  useEffect(() => {
+    startTagTimer();
+
+    return () => {
+      if (tagIntervalRef.current) {
+        clearInterval(tagIntervalRef.current);
+      }
+    };
+  }, [startTagTimer]);
+
+  // Convert hex color to RGB for gradient
+  const hexToRgb = (hex: string) => {
+    const result = /^#?([a-f\d]{2})([a-f\d]{2})([a-f\d]{2})$/i.exec(hex);
+    return result
+      ? {
+          r: parseInt(result[1], 16),
+          g: parseInt(result[2], 16),
+          b: parseInt(result[3], 16),
+        }
+      : { r: 218, g: 54, b: 67 };
+  };
+
+  const primaryRgb = hexToRgb(primaryColor);
+  const primaryColorRgba = `rgba(${primaryRgb.r},${primaryRgb.g},${primaryRgb.b},0.9)`;
+
   return (
-    <>
-      <GoogleTagManager gtmId="GTM-MGJX3SH" />
-      <section
-        className="relative w-full md:h-[750px] h-[550px] overflow-hidden flex flex-col  bg-[url(/image/powerBi/bannerBg.avif)] bg-cover bg-[right_-305px_top_359px] sm:bg-center md:bg-right"
+    <section
+      className="relative w-full min-h-screen flex flex-col items-center justify-center overflow-hidden px-4 md:px-20 py-8 md:py-12"
+      style={{ backgroundColor }}
+    >
+      <p
+        className="relative z-20 bg-[linear-gradient(131deg,rgba(109,117,133,0.9)_0%,var(--primary-color)_100%)] [-webkit-background-clip:text] bg-clip-text [-webkit-text-fill-color:transparent] [text-fill-color:transparent] font-semibold text-2xl md:text-4xl text-center tracking-[0] leading-[normal]"
+        style={
+          {
+            "--primary-color": primaryColorRgba,
+          } as React.CSSProperties
+        }
       >
-        <div className="flex flex-col justify-center h-full gap-[18px] px-[10px] md:px-0 w-full sm:pl-[40px] md:pl-[60px] lg:pl-[107px] lg:w-[50%] text-center md:text-start">
-          <h1 className="text-white/90 font-[700] text-[36px] leading-tight sm:text-[42px] md:text-[52px]  ">
-            {data.content.MainSection.title}
-          </h1>
-          <p className="text-[#fefefe] font-normal text-base leading-normal tracking-[0.5px] sm:text-lg sm:tracking-[0.8px] md:text-xl lg:text-2xl lg:tracking-[1.44px]">
-            {data.content.MainSection.heading}
-          </p>
+        {title}
+      </p>
+      {description && (
+        <p className="text-white text-center text-sm md:text-base leading-relaxed mb-6 md:mb-[71px] mt-4">
+          {description}
+        </p>
+      )}
 
-          <Link href="/contact-us" className="mt-8 block" >
-            <CommonButton content={"Let’s Connect"} type="Submit" />
-          </Link>
+      <div className="w-full h-[600px] sm:h-[700px] md:h-full flex items-center justify-center">
+        <div className="relative w-full max-w-[1400px] perspective-[1400px]">
+          <div
+            ref={carouselRef}
+            className="relative w-full h-[600px] sm:h-[700px] md:h-[clamp(520px,65vh,720px)] [transform-style:preserve-3d] z-10 pointer-events-none"
+          >
+            {cardData.map((card, i) => {
+              // For single card, center it with no rotation
+              const cardDeg = isSingleCard ? 0 : i * angle;
+              const isActive = i === activeSlideIndex;
+              // Single card should always be at full scale
+              const scale = isSingleCard ? 1 : (isActive ? 1 : inactiveScale);
+
+              return (
+                <div
+                  key={i}
+                  className="absolute inset-0 flex items-center justify-center"
+                  style={{
+                    transform: isSingleCard 
+                      ? `rotateY(0deg) translateZ(0) scale(1)` 
+                      : `rotateY(${cardDeg}deg) translateZ(${mobileRadius}vw) scale(${scale})`,
+                    transition: 'transform 1s cubic-bezier(0.645, 0.045, 0.355, 1)',
+                    pointerEvents: isActive ? "auto" : "none",
+                    zIndex: isActive ? 10 : 1,
+                  }}
+                >
+                  <div className="w-[90%] md:w-[80%] h-[560px] sm:max-h-[650px] md:h-full bg-[#212121] backdrop-blur border border-white/10 rounded-2xl md:rounded-[70%/10%] shadow-[0_40px_100px_rgba(0,0,0,0.7)] flex md:flex-row flex-col items-center md:justify-between gap-3 sm:gap-4 md:gap-8 p-4 md:p-8 overflow-y-auto md:overflow-visible">
+                    <div className="hidden md:flex flex-shrink-0 w-[40%] 2xl:w-[38%]">
+                      <img
+                        src={card.image}
+                        alt={card.heading}
+                        className="w-full h-auto object-contain"
+                      />
+                    </div>
+                    <div className="md:hidden flex-shrink-0 w-[280px]">
+                      <img
+                        src={windowWidth < 768 && card.imageMobile ? card.imageMobile : card.image}
+                        alt={card.heading}
+                        className="w-full h-auto object-contain"
+                      />
+                    </div>
+
+                    <div className="w-full max-w-xl text-white space-y-2 sm:space-y-3 md:space-y-6">
+                      <div className="text-[10px] sm:text-xs md:text-sm text-gray-400">
+                        {card.heading}
+                      </div>
+
+                      <h2 className="text-lg sm:text-xl md:text-3xl font-semibold leading-tight">
+                        {card.title}
+                      </h2>
+
+                      <p className="text-xs sm:text-sm md:text-base text-gray-400 leading-relaxed">
+                        {card.description}
+                      </p>
+                      <hr className="my-1 sm:my-4 md:my-6 border-white/10" />
+
+                      <div className="flex flex-wrap gap-1.5 sm:gap-2 md:gap-3">
+                        {card.tags.map((tag, tagIdx) => {
+                          const isTagActive = tagIdx === activeTagIndex;
+                          const isCurrentCard = i === activeSlideIndex;
+
+                          return (
+                            <span
+                              key={tagIdx}
+                              onClick={() => {
+                                if (isCurrentCard) {
+                                  // Allow clicking on any tag to jump to it
+                                  if (tagIdx !== activeTagIndex) {
+                                    setActiveTagIndex(tagIdx);
+                                    // Restart the timer when clicking on a tag
+                                    startTagTimer();
+                                  }
+                                }
+                              }}
+                              className={`px-1.5 sm:px-2 md:px-3 py-0.5 sm:py-1 md:py-1.5 rounded-lg text-[10px] sm:text-xs md:text-sm border transition-all duration-300 cursor-pointer ${
+                                isTagActive
+                                  ? `border-[${primaryColor}] text-[${primaryColor}]`
+                                  : "border-white/10 text-white hover:border-white/30"
+                              }`}
+                              style={
+                                isTagActive
+                                  ? {
+                                      borderColor: primaryColor,
+                                      color: primaryColor,
+                                    }
+                                  : undefined
+                              }
+                            >
+                              {tag.label}
+                            </span>
+                          );
+                        })}
+                      </div>
+                      {card.tags.map((tag, tagIdx) => {
+                        const isTagActive = tagIdx === activeTagIndex;
+                        return isTagActive ? (
+                          <div key={tagIdx} className="md:min-h-28 min-h-[88px] text-xs sm:text-sm md:text-base text-gray-400 leading-relaxed" style={{ animation: 'fadeIn 0.3s ease-in-out 0.3s forwards', opacity: 0.1 }}>
+                            {Array.isArray(tag.description) ? (
+                              <ul className="list-disc list-inside space-y-1.5 sm:space-y-2">
+                                {tag.description.map((bullet, bulletIdx) => (
+                                  <li key={bulletIdx}>{bullet}</li>
+                                ))}
+                              </ul>
+                            ) : (
+                              <p>{tag.description}</p>
+                            )}
+                          </div>
+                        ) : null;
+                      })}
+
+                      {!hideButton && card.buttonLink && (
+                        <a
+                          href={card.buttonLink}
+                          className="inline-flex items-center px-3 sm:px-4 md:px-5 py-1.5 sm:py-2 md:py-2.5 text-xs sm:text-sm md:text-base rounded-lg transition mt-0"
+                          style={{
+                            backgroundColor: primaryColor,
+                          }}
+                          onMouseEnter={(e) => {
+                            const rgb = hexToRgb(primaryColor);
+                            e.currentTarget.style.backgroundColor = `rgb(${Math.max(0, rgb.r - 20)}, ${Math.max(0, rgb.g - 20)}, ${Math.max(0, rgb.b - 20)})`;
+                          }}
+                          onMouseLeave={(e) => {
+                            e.currentTarget.style.backgroundColor = primaryColor;
+                          }}
+                        >
+                          {card.buttonText || buttonText}
+                        </a>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+
+          {!isSingleCard && (
+            <>
+              <button
+                onClick={() => rotate("prev")}
+                className="absolute left-0 -bottom-[75px] md:top-1/2 -translate-y-1/2 w-12 h-12 rounded-[53px] border border-[rgba(103,103,103,0.30)] bg-[rgba(217,217,217,0.01)] shadow-[inset_0_-1px_25px_0_rgba(255,255,255,0.10),inset_10px_10px_15px_0_rgba(0,0,0,0.05)] backdrop-blur-[12.5px] flex items-center justify-center transition z-10"
+              >
+                <ChevronLeft className="text-white w-5 h-5 md:w-6 md:h-6" />
+              </button>
+
+              <button
+                onClick={() => rotate("next")}
+                className="absolute right-0 -bottom-[75px] md:top-1/2 -translate-y-1/2 w-12 h-12 rounded-[53px] border border-[rgba(103,103,103,0.30)] bg-[rgba(217,217,217,0.01)] shadow-[inset_0_-1px_25px_0_rgba(255,255,255,0.10),inset_10px_10px_15px_0_rgba(0,0,0,0.05)] backdrop-blur-[12.5px] flex items-center justify-center transition z-10"
+              >
+                <ChevronRight className="text-white w-5 h-5 md:w-6 md:h-6" />
+              </button>
+            </>
+          )}
         </div>
-      </section>
-      {/* section2 */}
-      <TwoColumnSection
-        data={data}
-      />
+      </div>
 
-      <section className="lg:px-[105px] bg-[#101010] lg:pt-[102px] max-lg:px-[26px] max-lg:py-[24px] lg:pb-[52px] relative ">
-        <ServicesWeOffer
-          heading="Our Power BI Service Offerings"
-          subheading="Empower your business with data-driven insights through our comprehensive Power BI solutions, from development and consulting to strategy and managed services."
-          sections={sections}
-        />
-      </section>
+      <div className="relative flex gap-2 justify-center mt-6 md:mt-[71px] z-20">
+        {cardData.map((card, index) => {
+          const isActive = index === activeSlideIndex;
+          const maxTagIndex = card.tags?.length - 1 || 0;
 
-      {/* section 5 */}
-      {/* <BusinessValue {...BUSINESS_VALUE_DATA} /> */}
-      <RollingSliderCarousel_2
-        cards={POWER_BI_CAROUSEL_CARDS}
-        title="Strategic Solutions and Measurable Impact"
-        description="A comprehensive review of the insights and professional expertise leveraged to deliver significant results and exceed project benchmarks."
-      />
-
-      {/* section6 */}
-      <PowerBiServiceCapability />
-
-      {/* section7 */}
-      <WhyChooseCloudesign title="Why Choose Cloudesign?" powerAppBiCards={POWER_APP_BI_CARDS} BusinessValueMainBG={BusinessValueMainBG} />
-
-      {/* section8 */}
-      {/* <section className="max-lg:px-5">
-        <WhatCustomerSay2 />
-      </section>
-
-      <AchivementNumbers cards={metrics} /> */}
-
-      <section>
-        <RecentBlogs serviceCategoryProps={data?.content?.section8?.category} />
-      </section>
-
-      {/* section11 */}
-      <FAQSection faqs={faqs} />
-
-      <section>
-        <ContactForm />
-      </section>
-    </>
+          return (
+            <div
+              key={index}
+              className={`h-1 rounded-full overflow-hidden flex transition-all duration-300 ${isActive ? "w-14" : "w-14"}`}
+            >
+              {Array.from({ length: card.tags?.length || 0 }, (_, tagIdx) => {
+                const isTagActive = isActive && tagIdx <= activeTagIndex;
+                return (
+                  <div
+                    key={tagIdx}
+                    className="flex-1 transition-all duration-300"
+                    style={{
+                      backgroundColor: isTagActive ? primaryColor : "#212121",
+                    }}
+                  />
+                );
+              })}
+            </div>
+          );
+        })}
+      </div>
+    </section>
   );
 }
-
-export default PowerBiServiceComponent;
-
 
 
 ---------------------------------------------
