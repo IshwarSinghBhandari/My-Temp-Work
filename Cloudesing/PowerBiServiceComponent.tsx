@@ -348,3 +348,98 @@ function PowerBiServiceComponent(data: ServicesComponentProps) {
 }
 
 export default PowerBiServiceComponent;
+
+
+
+---------------------------------------------
+  const MICROSOFT_CONSULTING_CAROUSEL_CARDS: CarouselCard[] = [
+  {
+    id: 0,
+    image: "/image/MSConsultingServices/BusinessValueMain.avif",
+    imageMobile: "/image/MSConsultingServices/BusinessValueMain.avif",
+    heading: "CASE STUDY ",
+    title: "Client Context / Industry",
+    description:
+      "A mid-sized B2B services company with ~150 employees, operating across sales, delivery, and support teams. The organization was transitioning from fragmented tools to a structured Microsoft cloud environment.",
+    tags: [
+      {
+        label: "The Problem",
+        description: [
+          "User identities and access were unmanaged across applications",
+          "No role-based access or centralized identity control",
+          "Manual internal processes caused delays and errors",
+          "Limited visibility into security, usage, and data ownership"
+        ],
+        active: true,
+      },
+      {
+        label: "What We Built / Delivered",
+        description: [
+          "Implemented Microsoft Entra ID with centralized user and group management",
+          "Designed Azure tenant structure with basic governance controls",
+          "Built Power Apps and Power Automate workflows for internal processes",
+          "Set up Power BI Service workspaces with role-based access"
+        ],
+        active: false,
+      },
+      {
+        label: "Impact / Result",
+        description: [
+          "Consistent access across Microsoft tools",
+          "Reduced manual effort through automated workflows",
+          "Improved security posture without operational complexity",
+          "Created a scalable Microsoft cloud foundation for future growth"
+        ],
+        active: false,
+      },
+    ],
+   
+  },
+
+];
+
+----------------------------------------------------
+  
+const POWER_BI_CAROUSEL_CARDS: CarouselCard[] = [
+  {
+    id: 0,
+    image: "/image/powerBi/BusinessValueMain.webp",
+    imageMobile: "/image/powerBi/BusinessValueMain.webp",
+    heading: "CASE STUDY ",
+    title: "Client Context / Industry",
+    description:
+      "A B2B manufacturing company supplying components to enterprise customers. The company used an ERP system but relied on spreadsheets for management and MIS reporting.",
+    tags: [
+      {
+        label: "The Problem",
+        description: [
+          "Financial and operational data were siloed",
+          "Limited visibility into margins and receivables",
+          "Monthly MIS reports were slow and manually prepared",
+          "Frequent discrepancies during management reviews"
+        ],
+        active: true,
+      },
+      {
+        label: "What We Built / Delivered",
+        description: [
+          "Modeled ERP and finance data in Power BI",
+          "Published MIS dashboards via Power BI Service",
+          "Reports covering revenue, costs, margins, and receivables",
+          "Access control for finance and leadership teams"
+        ],
+        active: false,
+      },
+      {
+        label: "Impact / Result",
+        description: [
+          "Faster and more reliable MIS reporting",
+          "Clearer margin and cash flow visibility",
+          "Reduced dependency on manual Excel consolidation",
+          "More structured monthly reviews"
+        ],
+        active: false,
+      },
+    ],
+  },
+];
