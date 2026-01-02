@@ -1,0 +1,172 @@
+'use client';
+
+import Link from 'next/link';
+import { usePathname } from 'next/navigation';
+import { memo, useMemo } from 'react';
+
+// Full mapping (your provided list)
+const customBreadcrumbs: Record<string, string[]> = {
+  "/data-warehousing-services": ["Home", "Service", "Data Warehousing Services"],
+  "/data-analytics-services": ["Home", "Service", "Data & Analytics"],
+  "/business-intelligence-services": ["Home", "Service", "AI & Data Science", "Business Intelligence (BI)"],
+  "/ai-data-services": ["Home", "Service", "AI & ML Automation"],
+  "/blockchain-development-services/": ["Home", "Service", "Block Chain"],
+  "/software-product-development-services/": ["Home", "Service", "Product Engineering", "SaaS & Product Development"],
+  "/ui-ux-design-services": ["Home", "Service", "Product Engineering", "UI/UX Design"],
+  "/software-testing-services": ["Home", "Service", "Product Engineering", "QA Engineering"],
+  "/application-modernization-services": ["Home", "Service", "Product Engineering", "Legacy Application Modernization"],
+  "/iot-development-company/": ["Home", "Service", "Product Engineering", "IoT & Embedded Systems"],
+  "/agile-software-company": ["Home", "Service", "Agile"],
+  "/big-data-architecture-data-lakes": ["Home", "Service", "Data Engineering", "Big Data Architecture & Data Lakes"],
+  "/generative-ai-and-llm-solutions": ["Home", "Service", "AI & Data Science", "Generative AI & LLM Solutions"],
+  "/offshore-development-services/": ["Home", "Service", "Offshore Software Development"],
+  "/cloud-migration-services": ["Home", "Service", "Cloud & DevOps", "Cloud Migration & Modernisation"],
+  "/cloud-devops-services": ["Home", "Service", "Cloud & DevOps", "DevOps & Security"],
+  "/aws-development-services/": ["Home", "Service", "Cloud & DevOps", "Managed Services", "AWS Consultancy"],
+  "/azure-development-services/": ["Home", "Service", "Cloud & DevOps", "Managed Services", "Azure Consultancy"],
+  "/robotic-process-automation": ["Home", "Service", "Enterprise Application Development", "UiPath"],
+  "/microsoft-consulting-services": ["Home", "Service", "Microsoft Consulting Services"],
+  "/erp-services": ["Home", "Service", "Enterprise Application Development", "ERP"],
+  "/power-apps-development": ["Home", "Service", "Enterprise Application Development", "Power Platform", "Power Apps"],
+  "/powerbi-services": ["Home", "Service", "Enterprise Application Development", "Power Platform", "Power BI"],
+  "/digital-content-management": ["Home", "Service", "Enterprise Application Development", "Digital Content Management"],
+  "/seo-services": ["Home", "Service", "Digital Marketing", "SEO & Content Strategy"],
+  "/sem-marketing-and-ppc-services": ["Home", "Service", "Digital Marketing", "Paid Ads (PPC)"],
+  "/content-writing-Services": ["Home", "Service", "Content Writing"],
+  "/web-development-service": ["Home", "Service", "Digital Marketing", "Website Development"],
+  "/native-and-hybrid-app-development": ["Home", "Service", "Digital Marketing", "Mobile App Development"],
+  "/it-staff-augmentation-services": ["Home", "Service", "Talent Solutions", "Staff Augmentation"],
+  "/hr-services/": ["Home", "Service", "HR Services"],
+};
+
+const Breadcrumbs = () => {
+  const pathname = usePathname();
+
+  // Normalize (remove trailing slash except for root)
+  const normalizedPath = useMemo(() => {
+    if (!pathname) return pathname;
+    if (pathname === '/') return pathname;
+    return pathname.endsWith('/') ? pathname.slice(0, -1) : pathname;
+  }, [pathname]);
+
+  // Find matching custom breadcrumb entry (exact or startsWith)
+  const matchedEntry = useMemo(() => {
+    if (!normalizedPath) return null;
+    const found = Object.entries(customBreadcrumbs).find(([key]) => {
+      const keyNorm = key.replace(/\/$/, '');
+      return normalizedPath.startsWith(keyNorm);
+    });
+    return found || null; // [key, items] or null
+  }, [normalizedPath]);
+
+  // If no custom match exists, splits the path into segments.
+  const autoSegments = useMemo(
+    () => (pathname ? pathname.split('/').filter(Boolean) : []),
+    [pathname]
+  );
+
+  // nothing to show on home
+  if ((!pathname || pathname === '/') && !matchedEntry) return null;
+
+  // slug helper (makes kebab-case)
+  const slugify = (s: string) =>
+    s
+      .toLowerCase()
+      .replace(/&/g, 'and')
+      .replace(/[\s/]+/g, '-')
+      .replace(/[^a-z0-9-]/g, '')
+      .replace(/--+/g, '-')
+      .replace(/(^-|-$)/g, '');
+
+  // format for auto-generated names
+  const formatName = (name: string) =>
+    name
+      .replace(/-/g, ' ')
+      .split(' ')
+      .map(w => (w ? w.charAt(0).toUpperCase() + w.slice(1) : ''))
+      .join(' ');
+
+  // Given a matched custom breadcrumb items array, compute href for item at index
+  const getMatchedHref = (items: string[], idx: number) => {
+    const item = items[idx];
+    const lower = item.toLowerCase();
+
+    if (lower === 'home') return '/';
+    if (/^service(s)?$/i.test(item)) return '/services/';
+
+    // find Service / Product parent indexes if present
+    const serviceIndex = items.findIndex(i => /^service(s)?$/i.test(i));
+
+    if (serviceIndex !== -1 && idx > serviceIndex) {
+      const parts = items.slice(serviceIndex + 1, idx + 1).map(slugify);
+      return '/services/' + parts.join('/') + '/';
+    }
+
+    // Fallback: build a path from the items after "Home"
+    const fallbackParts = items.slice(1, idx + 1).map(slugify);
+    return '/' + fallbackParts.join('/') + '/';
+  };
+
+  // render
+  return (
+    <nav
+      className="text-[11px] md:text-sm text-gray-500 px-4 md:px-[70px] py-[2px] overflow-x-auto scrollbar-thin scrollbar-thumb-gray-300"
+      aria-label="Breadcrumb"
+    >
+      <ol className="flex items-center gap-x-2 py-[8px] whitespace-nowrap">
+        {/* Always show Home as the first parent */}
+        <li className="flex items-center">
+          <Link href="/" className="hover:text-gray-700">
+            Home
+          </Link>
+        </li>
+
+        {matchedEntry ? (
+          // Custom breadcrumb: matchedEntry[1] is the items array (includes 'Home' as first)
+          matchedEntry[1]
+            .slice(1)
+            .map((item, i) => {
+              const idx = i + 1; // original index in items
+              const isLast = idx === matchedEntry[1].length - 1;
+              const href = getMatchedHref(matchedEntry[1], idx);
+
+              return (
+                <li key={`${idx}-${item}`} className="flex items-center">
+                  <span aria-hidden="true">›</span>
+                  {isLast ? (
+                    <span className="ml-2 text-red-500">{item}</span>
+                  ) : (
+                    <Link href={href} className="ml-2 hover:text-gray-700">
+                      {item}
+                    </Link>
+                  )}
+                </li>
+              );
+            })
+        ) : (
+          // Auto-generated breadcrumb from pathname segments
+          autoSegments.map((seg, i) => {
+            const isLast = i === autoSegments.length - 1;
+            const name = formatName(seg);
+            const href = '/' + autoSegments.slice(0, i + 1).join('/') + '/';
+
+            return (
+              <li key={`${i}-${seg}`} className="flex items-center">
+                <span aria-hidden="true">›</span>
+                {isLast ? (
+                  <span className="ml-2 text-red-500">{name}</span>
+                ) : (
+                  <Link href={href} className="ml-2 hover:text-gray-700">
+                    {name}
+                  </Link>
+                )}
+              </li>
+            );
+          })
+        )}
+      </ol>
+    </nav>
+  );
+};
+
+export default memo(Breadcrumbs);
