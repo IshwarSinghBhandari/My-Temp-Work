@@ -10,7 +10,7 @@ type Step = {
   distance?: number | string;
   duration?: string;
 };
-
+ 
 type Route = {
   totalDistance: number;
   totalDuration?: string;
